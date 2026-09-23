@@ -115,10 +115,9 @@
   .btn-secondary:hover { border-color: var(--accent); }
 
   .topbar {
-    position: sticky; top: 0; z-index: 20; background: rgba(11,20,16,0.92); backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 20; background: var(--bg); background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px);
   }
-  :root[data-theme="light"] .topbar, :root:not([data-theme="dark"]) .topbar { background: rgba(243,246,241,0.92); }
   .topbar-inner { max-width: 920px; margin: 0 auto; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .brand { font-family: var(--font-display); font-weight: 700; font-size: 21px; display: flex; align-items: center; gap: 8px; }
   .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
@@ -189,6 +188,18 @@
   table.standings tr:last-child td { border-bottom: none; }
   table.standings td.pts-cell { font-weight: 800; color: var(--accent); font-size: 15px; }
   table.standings tr.qualifies td.pos-cell { color: var(--accent); }
+  table.standings.compact { min-width: 0; }
+  table.standings.compact th, table.standings.compact td { padding: 9px 5px; white-space: nowrap; }
+  table.standings.compact th { font-size: 10px; letter-spacing: 0; }
+  table.standings.compact td.name-cell { padding-left: 12px; }
+  table.standings.compact th:first-child { padding-left: 12px; }
+  table.standings tr.absent td { color: var(--text-muted); }
+  table.standings .mv { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+  table.standings .mv.up { color: var(--accent); }
+  table.standings .mv.down { color: var(--red); }
+  .rewards-block { margin-bottom: 22px; }
+  .rewards-block .sub-note { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+  .empty-note { color: var(--text-muted); font-size: 14px; }
   .qual-note { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
   .qual-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
 
@@ -1174,6 +1185,143 @@
   }
 
   /* ============================== render: help + login modals ============================== */
+  /* ============================== recompensas ============================== */
+  const REWARD_POINTS = [11, 10, 9, 8, 7, 6, 5]; // 1° a 7° de la fase de grupos
+  const ABSENT_POINTS = 2;
+  const CHAMPION_BONUS = 2;
+  const RUNNER_UP_BONUS = 1;
+
+  function groupStageDone(j) {
+    return j.matches.length > 0 && j.matches.every(m => m.played);
+  }
+  // Puntos de recompensa de una Jornada. null si la fase de grupos no ha terminado.
+  function jornadaRewards(j) {
+    if (!groupStageDone(j)) return null;
+    const pf = j.playoff;
+    const championId = pf && pf.championId ? pf.championId : null;
+    const runnerUpId = championId && pf.final
+      ? (pf.final.homeId === championId ? pf.final.awayId : pf.final.homeId)
+      : null;
+    const rows = [];
+    computeStandings(j).forEach(s => rows.push({
+      playerId: s.playerId, place: s.rank,
+      base: REWARD_POINTS[s.rank - 1] != null ? REWARD_POINTS[s.rank - 1] : REWARD_POINTS[REWARD_POINTS.length - 1]
+    }));
+    state.players.forEach(p => {
+      if (!j.activeIds.includes(p.id)) rows.push({ playerId: p.id, place: null, base: ABSENT_POINTS });
+    });
+    const order = {}; state.players.forEach((p, i) => order[p.id] = i);
+    rows.forEach(r => {
+      r.champion = r.playerId === championId ? CHAMPION_BONUS : 0;
+      r.runnerUp = r.playerId === runnerUpId ? RUNNER_UP_BONUS : 0;
+      r.total = r.base + r.champion + r.runnerUp;
+    });
+    rows.sort((a, b) => b.total - a.total
+      || (a.place == null ? 99 : a.place) - (b.place == null ? 99 : b.place)
+      || order[a.playerId] - order[b.playerId]);
+    return { rows, finalDone: !!championId };
+  }
+  // Tabla General: acumulado Jornada tras Jornada. En empate, quien venía
+  // abajo y alcanza a otro se coloca arriba de él; si ya estaban empatados,
+  // conservan su orden.
+  function generalTable() {
+    let order = state.players.map(p => p.id);
+    const total = {}, perJ = {};
+    order.forEach(id => { total[id] = 0; perJ[id] = {}; });
+    const labels = [];
+    let prevRank = null;
+    state.jornadas.forEach(j => {
+      const r = jornadaRewards(j);
+      if (!r) return;
+      labels.push(j.label);
+      const before = Object.assign({}, total);
+      const pos = {}; order.forEach((id, i) => pos[id] = i);
+      prevRank = pos;
+      r.rows.forEach(row => {
+        if (!(row.playerId in total)) return;
+        total[row.playerId] += row.total;
+        perJ[row.playerId][j.label] = row.total;
+      });
+      order = order.slice().sort((a, b) => total[b] - total[a] || before[a] - before[b] || pos[a] - pos[b]);
+    });
+    return {
+      labels,
+      rows: order.map((id, i) => ({
+        playerId: id, rank: i + 1, total: total[id], perJ: perJ[id],
+        move: labels.length > 1 ? prevRank[id] - i : 0
+      }))
+    };
+  }
+
+  function rewardsLegendHtml() {
+    const places = REWARD_POINTS.map((p, i) => `${i + 1}° = ${p}`).join(" · ");
+    return `<p class="qual-note">Puntos por lugar en la fase de grupos: ${places} · Faltó = ${ABSENT_POINTS}. Bono de la Final: Campeón +${CHAMPION_BONUS}, Subcampeón +${RUNNER_UP_BONUS}.</p>`;
+  }
+  function renderRewards() {
+    const done = state.jornadas.map(j => ({ j, r: jornadaRewards(j) })).filter(x => x.r).reverse();
+    let html = `<div class="section">
+      <div class="section-head"><h2>Recompensas</h2><span class="sub">Puntos por Jornada</span></div>
+      ${rewardsLegendHtml()}`;
+    if (!done.length) {
+      html += `<div class="card empty-note">Todavía no hay Jornadas con la fase de grupos terminada. Los puntos aparecen aquí en cuanto se capturen todos los partidos de una Jornada.</div>`;
+    }
+    done.forEach(({ j, r }) => {
+      html += `<div class="rewards-block">
+        <p class="stage-title">${j.label}${r.finalDone ? "" : ` <span class="sub-note">· bonos de la Final pendientes</span>`}</p>
+        <div class="table-scroll">
+          <table class="standings compact">
+            <thead><tr>
+              <th style="text-align:left">Jugador</th><th>Lugar</th><th>Pts</th><th>Campeón</th><th>Subcamp.</th><th>Total</th>
+            </tr></thead>
+            <tbody>${r.rows.map(row => `
+              <tr class="${row.place == null ? "absent" : ""}">
+                <td class="name-cell">${escapeHtml(playerName(row.playerId))}</td>
+                <td>${row.place == null ? "Faltó" : row.place + "°"}</td>
+                <td>${row.base}</td>
+                <td>${row.champion ? `🏆 +${row.champion}` : ""}</td>
+                <td>${row.runnerUp ? `🥈 +${row.runnerUp}` : ""}</td>
+                <td class="pts-cell">${row.total}</td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    });
+    return html + `</div>`;
+  }
+  function renderGeneralTable() {
+    const g = generalTable();
+    let html = `<div class="section">
+      <div class="section-head"><h2>Tabla General</h2><span class="sub">Puntos de recompensa acumulados</span></div>`;
+    if (!g.labels.length) {
+      html += `<div class="card empty-note">La Tabla General se arma en cuanto termine la fase de grupos de la primera Jornada.</div></div>`;
+      return html;
+    }
+    const arrow = (m) => m > 0 ? `<span class="mv up">▲${m}</span>` : m < 0 ? `<span class="mv down">▼${-m}</span>` : `<span class="mv">–</span>`;
+    html += `<div class="table-scroll">
+        <table class="standings compact">
+          <thead><tr>
+            <th>#</th><th></th><th style="text-align:left">Jugador</th>
+            ${g.labels.map(l => `<th>${l}</th>`).join("")}
+            <th>Total</th>
+          </tr></thead>
+          <tbody>${g.rows.map(r => `
+            <tr>
+              <td class="pos-cell">${r.rank}</td>
+              <td>${arrow(r.move)}</td>
+              <td class="name-cell">${escapeHtml(playerName(r.playerId))}</td>
+              ${g.labels.map(l => `<td>${r.perJ[l] != null ? r.perJ[l] : "–"}</td>`).join("")}
+              <td class="pts-cell">${r.total}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="qual-note">Las flechas indican el movimiento respecto a la Jornada anterior. En empate de puntos, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
+      ${rewardsLegendHtml()}
+    </div>`;
+    return html;
+  }
+
   function helpModalHtml() {
     if (!helpOpen) return "";
     return `
@@ -1196,7 +1344,10 @@
         <p><strong>Con 4, 5 o 6 jugadores activos:</strong> pasan los mejores 4, directo a semifinales: 1° vs 4° y 2° vs 3°.</p>
         <p>En la Liguilla, el jugador mejor ubicado en la tabla siempre es local.</p>
         <h4>Localía</h4>
-        <p>El calendario reparte la localía lo más parejo posible entre partidos, tomando en cuenta cuántas veces ya jugó de local cada jugador en Jornadas anteriores de la temporada.</p>
+        <p>El orden de los partidos se sortea en cada Jornada. La localía se reparte para que cada jugador sea local en la mitad de los partidos que ha jugado en la temporada, tomando en cuenta las Jornadas anteriores.</p>
+        <h4>Recompensas y Tabla General</h4>
+        <p>Al terminar la fase de grupos de cada Jornada se reparten puntos según el lugar: 1° = 11, 2° = 10, 3° = 9, 4° = 8, 5° = 7, 6° = 6, 7° = 5. Quien falte a la Jornada recibe 2 puntos. Bono de la Final: <strong>Campeón +2</strong>, <strong>Subcampeón +1</strong>.</p>
+        <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
         <h4>Tus datos</h4>
         <p>Todo se guarda en una base de datos real y se sincroniza al instante entre todos los que tengan la app abierta. Solo el admin puede editar; el resto puede ver todo en vivo sin iniciar sesión.</p>
         <div class="modal-close-row"><button class="btn-secondary" data-action="close-help">Cerrar</button></div>
@@ -1227,12 +1378,16 @@
   /* ============================== render: dashboard ============================== */
   function renderDashboard() {
     const app = $("#app");
-    if (!activeTab) activeTab = state.jornadas[0].label;
-    const isPalmares = activeTab === "palmares";
-    const j = isPalmares ? null : state.jornadas.find(x => x.label === activeTab);
+    const specialTabs = ["palmares", "recompensas", "general"];
+    if (!activeTab || (!specialTabs.includes(activeTab) && !state.jornadas.some(x => x.label === activeTab))) {
+      activeTab = state.jornadas[0].label;
+    }
+    const j = specialTabs.includes(activeTab) ? null : state.jornadas.find(x => x.label === activeTab);
 
     let body = "";
-    if (isPalmares) body = renderPalmares();
+    if (activeTab === "palmares") body = renderPalmares();
+    else if (activeTab === "recompensas") body = renderRewards();
+    else if (activeTab === "general") body = renderGeneralTable();
     else if (j.matches.length === 0) body = renderAttendanceStage(j);
     else body = renderGroupStage(j) + renderPlayoff(j);
 
@@ -1256,6 +1411,8 @@
             return `<button class="tab-btn ${st} ${activeTab === jj.label ? "active" : ""}" data-action="set-tab" data-tab="${jj.label}"><span class="flag"></span>${jj.label}</button>`;
           }).join("")}
           <button class="tab-btn ${activeTab === "palmares" ? "active" : ""}" data-action="set-tab" data-tab="palmares">🏆 Palmarés</button>
+          <button class="tab-btn ${activeTab === "recompensas" ? "active" : ""}" data-action="set-tab" data-tab="recompensas">🎁 Recompensas</button>
+          <button class="tab-btn ${activeTab === "general" ? "active" : ""}" data-action="set-tab" data-tab="general">📊 Tabla General</button>
         </div>
       </div>
       <div class="wrap" style="padding-top:20px;">${body}</div>
