@@ -200,6 +200,10 @@
   .rewards-block { margin-bottom: 22px; }
   .rewards-block .sub-note { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
   .empty-note { color: var(--text-muted); font-size: 14px; }
+  table.standings td.fc-cell { font-weight: 800; color: var(--gold); font-size: 15px; }
+  .modal-box table.fc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 4px; }
+  .modal-box table.fc-table th, .modal-box table.fc-table td { border: 1px solid var(--line); padding: 5px 4px; text-align: center; }
+  .modal-box table.fc-table th { color: var(--text-muted); font-weight: 600; font-size: 11px; }
   .qual-note { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
   .qual-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
 
@@ -1190,6 +1194,27 @@
   const ABSENT_POINTS = 2;
   const CHAMPION_BONUS = 2;
   const RUNNER_UP_BONUS = 1;
+  // FIFA Coins (ϝ) al final de cada Jornada: fila = lugar en la Tabla General
+  // (o "faltó"), columna = distancia en puntos con el 1° lugar.
+  const FC_DIST_LABELS = ["0 a 6", "7 a 12", "13 a 18", "19 a 24", "25 a 30", "31+"];
+  const FC_TABLE = [
+    [16, 16, 16, 16, 16, 16], // 1°
+    [17, 19, 21, 23, 25, 27], // 2°
+    [18, 20, 22, 24, 26, 28], // 3°
+    [20, 21, 23, 25, 27, 29], // 4°
+    [21, 23, 25, 27, 29, 31], // 5°
+    [23, 25, 27, 29, 31, 33], // 6°
+    [24, 26, 28, 30, 32, 34]  // 7°
+  ];
+  const FC_ABSENT = [10, 12, 14, 16, 18, 20];
+  function fcDistanceBucket(d) {
+    return d <= 6 ? 0 : Math.min(5, Math.ceil((d - 6) / 6));
+  }
+  function fifaCoins(rank, distance, absent) {
+    const col = fcDistanceBucket(distance);
+    if (absent) return FC_ABSENT[col];
+    return FC_TABLE[Math.min(rank, FC_TABLE.length) - 1][col];
+  }
 
   function groupStageDone(j) {
     return j.matches.length > 0 && j.matches.every(m => m.played);
@@ -1229,6 +1254,7 @@
     const total = {}, perJ = {};
     order.forEach(id => { total[id] = 0; perJ[id] = {}; });
     const labels = [];
+    const snapshots = {};
     let prevRank = null;
     state.jornadas.forEach(j => {
       const r = jornadaRewards(j);
@@ -1243,9 +1269,11 @@
         perJ[row.playerId][j.label] = row.total;
       });
       order = order.slice().sort((a, b) => total[b] - total[a] || before[a] - before[b] || pos[a] - pos[b]);
+      const rank = {}; order.forEach((id, i) => rank[id] = i + 1);
+      snapshots[j.label] = { rank, total: Object.assign({}, total), leaderTotal: total[order[0]] };
     });
     return {
-      labels,
+      labels, snapshots,
       rows: order.map((id, i) => ({
         playerId: id, rank: i + 1, total: total[id], perJ: perJ[id],
         move: labels.length > 1 ? prevRank[id] - i : 0
@@ -1259,28 +1287,38 @@
   }
   function renderRewards() {
     const done = state.jornadas.map(j => ({ j, r: jornadaRewards(j) })).filter(x => x.r).reverse();
+    const snaps = generalTable().snapshots;
+    // Las FC se reparten con la Tabla General al final de la Jornada
+    // (incluye el bono de su Final), así que esperan a que termine la Final.
+    const fcOf = (j, r, row) => {
+      if (!r.finalDone) return null;
+      const snap = snaps[j.label];
+      return fifaCoins(snap.rank[row.playerId], snap.leaderTotal - snap.total[row.playerId], row.place == null);
+    };
     let html = `<div class="section">
       <div class="section-head"><h2>Recompensas</h2><span class="sub">Puntos por Jornada</span></div>
-      ${rewardsLegendHtml()}`;
+      ${rewardsLegendHtml()}
+      <p class="qual-note">Camp. = Campeón · Subc. = Subcampeón. FC (ϝ): FIFA Coins según el lugar en la Tabla General al final de la Jornada y la distancia en puntos con el 1° (ver tabla en ℹ️ Reglas).</p>`;
     if (!done.length) {
       html += `<div class="card empty-note">Todavía no hay Jornadas con la fase de grupos terminada. Los puntos aparecen aquí en cuanto se capturen todos los partidos de una Jornada.</div>`;
     }
     done.forEach(({ j, r }) => {
       html += `<div class="rewards-block">
-        <p class="stage-title">${j.label}${r.finalDone ? "" : ` <span class="sub-note">· bonos de la Final pendientes</span>`}</p>
+        <p class="stage-title">${j.label}${r.finalDone ? "" : ` <span class="sub-note">· bonos de la Final y FC pendientes</span>`}</p>
         <div class="table-scroll">
           <table class="standings compact">
             <thead><tr>
-              <th style="text-align:left">Jugador</th><th>Lugar</th><th>Pts</th><th>Campeón</th><th>Subcamp.</th><th>Total</th>
+              <th style="text-align:left">Jugador</th><th>Lugar</th><th>Pts</th><th title="Campeón">Camp.</th><th title="Subcampeón">Subc.</th><th>Total</th><th>FC (<span style="text-transform:none">ϝ</span>)</th>
             </tr></thead>
             <tbody>${r.rows.map(row => `
               <tr class="${row.place == null ? "absent" : ""}">
                 <td class="name-cell">${escapeHtml(playerName(row.playerId))}</td>
                 <td>${row.place == null ? "Faltó" : row.place + "°"}</td>
                 <td>${row.base}</td>
-                <td>${row.champion ? `🏆 +${row.champion}` : ""}</td>
-                <td>${row.runnerUp ? `🥈 +${row.runnerUp}` : ""}</td>
+                <td>${row.champion ? `🏆+${row.champion}` : ""}</td>
+                <td>${row.runnerUp ? `🥈+${row.runnerUp}` : ""}</td>
                 <td class="pts-cell">${row.total}</td>
+                <td class="fc-cell">${(fc => fc == null ? "–" : "ϝ" + fc)(fcOf(j, r, row))}</td>
               </tr>`).join("")}
             </tbody>
           </table>
@@ -1348,6 +1386,15 @@
         <h4>Recompensas y Tabla General</h4>
         <p>Al terminar la fase de grupos de cada Jornada se reparten puntos según el lugar: 1° = 11, 2° = 10, 3° = 9, 4° = 8, 5° = 7, 6° = 6, 7° = 5. Quien falte a la Jornada recibe 2 puntos. Bono de la Final: <strong>Campeón +2</strong>, <strong>Subcampeón +1</strong>.</p>
         <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
+        <h4>FIFA Coins (ϝ)</h4>
+        <p>Al final de cada Jornada (ya con la Final), cada jugador recibe FIFA Coins según su lugar en la Tabla General y su distancia en puntos con el 1° lugar. Quien faltó a la Jornada usa la fila "Faltó".</p>
+        <div class="table-scroll"><table class="fc-table">
+          <thead><tr><th>Lugar</th>${FC_DIST_LABELS.map(l => `<th>${l}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${FC_TABLE.map((row, i) => `<tr><td><strong>${i + 1}°</strong></td>${row.map(v => `<td>ϝ${v}</td>`).join("")}</tr>`).join("")}
+            <tr><td><strong>Faltó</strong></td>${FC_ABSENT.map(v => `<td>ϝ${v}</td>`).join("")}</tr>
+          </tbody>
+        </table></div>
         <h4>Tus datos</h4>
         <p>Todo se guarda en una base de datos real y se sincroniza al instante entre todos los que tengan la app abierta. Solo el admin puede editar; el resto puede ver todo en vivo sin iniciar sesión.</p>
         <div class="modal-close-row"><button class="btn-secondary" data-action="close-help">Cerrar</button></div>
