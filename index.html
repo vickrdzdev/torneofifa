@@ -241,6 +241,9 @@
   /* Con panel lateral, encabezado, pestañas y contenido alineados a la izquierda. */
   @media (min-width: 900px) { .main .topbar-inner, .main .wrap { margin-left: 0; } }
   .muted { color: var(--text-muted); }
+  .test-banner { position: sticky; top: 0; z-index: 90; background: #d97706; color: #fff; text-align: center; font-weight: 700; font-size: 12.5px; letter-spacing: .04em; padding: 5px 10px; }
+  body.test-env .topbar, body.test-env .sidenav { top: 27px; }
+  body.test-env .sidenav { height: calc(100vh - 27px); }
   .fc-sym { width: .46em; height: .64em; vertical-align: -.04em; margin-right: .03em; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
   .neg { color: var(--red); }
   .pos { color: var(--accent); }
@@ -361,9 +364,25 @@
   "use strict";
 
   /* ============================== supabase config ============================== */
-  const SUPABASE_URL = "https://zohacxiwuapnziicaarj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_dlamj0bnGrk7VTYLZNARVQ_XfVNCAq8";
+  // Base real solo en los dominios de producción; en cualquier otro lugar
+  // (GitHub Pages, copias locales) se usa la base de pruebas.
+  const PROD_HOSTS = ["torneofifa.com", "www.torneofifa.com", "torneofifateam.netlify.app"];
+  const IS_TEST_ENV = !PROD_HOSTS.includes(location.hostname);
+  const SUPABASE_URL = IS_TEST_ENV
+    ? "https://bcvzgwnwjtcmtbhwruhi.supabase.co"      // torneofifa-pruebas
+    : "https://zohacxiwuapnziicaarj.supabase.co";     // torneofifa (real)
+  const SUPABASE_KEY = IS_TEST_ENV
+    ? "sb_publishable_9wJ9d3Z2o1VM6H0RgQcSaw_9h78D3bJ"
+    : "sb_publishable_dlamj0bnGrk7VTYLZNARVQ_XfVNCAq8";
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  if (IS_TEST_ENV) {
+    document.body.classList.add("test-env");
+    document.title = "[PRUEBAS] " + document.title;
+    const banner = document.createElement("div");
+    banner.className = "test-banner";
+    banner.textContent = "MODO PRUEBAS · base de datos de pruebas (no afecta el torneo real)";
+    document.body.insertBefore(banner, document.body.firstChild);
+  }
 
   const JORNADA_COUNT = 12;
 

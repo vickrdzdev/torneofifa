@@ -22,3 +22,10 @@ El usuario admin se crea desde el dashboard de Supabase → Authentication → U
 cartas repetidas del mismo jugador. Las compras se guardan en la tabla `team_purchases`
 de Supabase (una fila por jugador comprado, con el valor pagado).
 
+## Base de pruebas
+
+La app usa la base real (`torneofifa`) solo en torneofifa.com, www.torneofifa.com y
+torneofifateam.netlify.app. En cualquier otra dirección (GitHub Pages, copias locales) usa
+la base de pruebas `torneofifa-pruebas` y muestra una franja "MODO PRUEBAS". Ambas bases
+tienen la misma estructura; los usuarios admin se dan de alta por separado en cada una.
+
