@@ -285,6 +285,8 @@
   .team-pick { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; }
   .team-opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; color: var(--text); font-weight: 600; font-size: 15px; text-align: left; }
   .team-opt.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+  .team-opt.full { opacity: .5; cursor: not-allowed; }
+  .full-tag { background: var(--surface); border: 1px solid var(--line); color: var(--text-muted); font-size: 10.5px; border-radius: 5px; padding: 1px 6px; text-transform: uppercase; font-weight: 700; margin-left: 4px; }
   .turn-tag { background: var(--accent); color: var(--accent-ink); font-size: 10.5px; border-radius: 5px; padding: 1px 6px; text-transform: uppercase; font-weight: 700; margin-left: 4px; }
   table.standings td.fc-cell { font-weight: 800; color: var(--blue); font-size: 15px; }
   .modal-box table.fc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 4px; }
@@ -1438,13 +1440,28 @@
     const order = state.players.map(p => p.id).sort((a, b) => snap.rank[a] - snap.rank[b]);
     const n = order.length;
     const total = n * SQUAD_SIZE;
-    const picks = (state.purchases || []).length;
-    if (picks >= total) return { status: "done" };
     const reversed = order.slice().reverse();
     const turnAt = k => (Math.floor(k / n) % 2 === 0 ? reversed : order)[k % n];
+    // Recorre el orden snake: el turno es del primer equipo que tiene menos
+    // jugadores de los que le corresponden a esa altura (salta completos y
+    // tolera compras fuera de turno o deshechas).
+    const have = {}, need = {};
+    order.forEach(id => { have[id] = 0; need[id] = 0; });
+    (state.purchases || []).forEach(pu => { if (pu.player_id in have) have[pu.player_id]++; });
+    const picks = Object.values(have).reduce((a, b) => a + Math.min(b, SQUAD_SIZE), 0);
+    if (picks >= total) return { status: "done" };
+    let turn = -1, next = null;
+    for (let k = 0; k < total; k++) {
+      const id = turnAt(k);
+      need[id]++;
+      if (have[id] < need[id]) {
+        if (turn < 0) { turn = k; have[id]++; }
+        else { next = id; break; }
+      }
+    }
     return {
-      status: "active", round: Math.floor(picks / n) + 1, pick: picks + 1, total,
-      playerId: turnAt(picks), nextId: picks + 1 < total ? turnAt(picks + 1) : null
+      status: "active", round: Math.floor(turn / n) + 1, pick: picks + 1, total,
+      playerId: turnAt(turn), nextId: next
     };
   }
 
@@ -1838,8 +1855,14 @@
     if (!m) return "";
     const fin = teamFinances();
     const turn = draftTurn();
-    if (!buyTeamId) buyTeamId = turn.status === "active" ? turn.playerId : state.players[0].id;
+    const isFull = id => fin[id].count >= SQUAD_SIZE;
+    if (!buyTeamId || isFull(buyTeamId)) {
+      const withRoom = state.players.find(p => !isFull(p.id));
+      buyTeamId = turn.status === "active" && !isFull(turn.playerId) ? turn.playerId : (withRoom ? withRoom.id : state.players[0].id);
+    }
+    const full = isFull(buyTeamId);
     const after = fin[buyTeamId].balance - m.price;
+    const blocked = full || after < 0;
     const wfB = WF_BONUS[m.wf] || 0, smB = SM_BONUS[m.sm] || 0;
     return `
     <div class="modal-overlay">
@@ -1850,16 +1873,17 @@
         <h4>¿Para qué equipo?</h4>
         <div class="team-pick">
           ${state.players.map(p => `
-            <button class="team-opt ${buyTeamId === p.id ? "active" : ""}" data-action="buy-pick-team" data-team="${p.id}">
-              <span>${escapeHtml(p.name)}${turn.status === "active" && turn.playerId === p.id ? ' <span class="turn-tag">turno</span>' : ""}</span>
+            <button class="team-opt ${buyTeamId === p.id ? "active" : ""} ${isFull(p.id) ? "full" : ""}" data-action="buy-pick-team" data-team="${p.id}" ${isFull(p.id) ? "disabled" : ""}>
+              <span>${escapeHtml(p.name)}${turn.status === "active" && turn.playerId === p.id ? ' <span class="turn-tag">turno</span>' : ""}${isFull(p.id) ? ' <span class="full-tag">completo</span>' : ""}</span>
               <span class="muted">${fcFormatted(fin[p.id].balance)} · ${fin[p.id].count}/${SQUAD_SIZE}</span>
             </button>`).join("")}
         </div>
         <p>Saldo después de la compra: <strong class="${after < 0 ? "neg" : ""}">${fcFormatted(after)}</strong></p>
-        ${after < 0 ? `<p class="attend-warn">${escapeHtml(playerName(buyTeamId))} no tiene saldo suficiente para este jugador.</p>` : ""}
+        ${full ? `<p class="attend-warn">Todos los equipos ya tienen ${SQUAD_SIZE} jugadores.</p>`
+          : after < 0 ? `<p class="attend-warn">${escapeHtml(playerName(buyTeamId))} no tiene saldo suficiente para este jugador.</p>` : ""}
         <div class="modal-close-row" style="gap:10px;">
           <button class="btn-secondary" data-action="close-buy">Cancelar</button>
-          <button class="btn-primary" style="width:auto;" data-action="confirm-buy" ${after < 0 ? "disabled" : ""}>Confirmar compra</button>
+          <button class="btn-primary" style="width:auto;" data-action="confirm-buy" ${blocked ? "disabled" : ""}>Confirmar compra</button>
         </div>
       </div>
     </div>`;
@@ -1868,6 +1892,7 @@
     if (!isAdmin || !buyCardId || !buyTeamId) return;
     const m = market.byId[buyCardId];
     const fin = teamFinances();
+    if (fin[buyTeamId].count >= SQUAD_SIZE) { showToast(playerName(buyTeamId) + " ya tiene " + SQUAD_SIZE + " jugadores."); return; }
     if (fin[buyTeamId].balance < m.price) { showToast("Saldo insuficiente."); return; }
     if (soldMap()[m.id]) { showToast("Ese jugador ya fue comprado."); buyCardId = null; render(); return; }
     const teamId = buyTeamId;
@@ -1876,7 +1901,9 @@
       season_id: state.season.id, player_id: teamId, card_id: m.id, card_name: m.name,
       pos: m.pos, rat: m.rat, wf: m.wf, sm: m.sm, price: m.price
     });
-    if (error) showToast(error.code === "23505" ? "Ese jugador ya fue comprado." : "No se pudo registrar la compra.");
+    if (error) showToast(error.code === "23505" ? "Ese jugador ya fue comprado."
+      : /squad_full/.test(error.message || "") ? playerName(teamId) + " ya tiene " + SQUAD_SIZE + " jugadores."
+      : "No se pudo registrar la compra.");
     else showToast(m.name + " → " + playerName(teamId) + " (" + fcFormatted(m.price) + ")");
     await loadSeasonData(); render();
   }
