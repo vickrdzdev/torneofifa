@@ -690,11 +690,15 @@
       const season = seasonRows[0];
       const jornadaRows = [];
       for (let i = 0; i < JORNADA_COUNT; i++) jornadaRows.push({ season_id: season.id, jornada_number: i, label: "J" + i });
-      const { error: e2 } = await sb.from("jornadas").insert(jornadaRows);
+      const { data: insertedJornadas, error: e2 } = await sb.from("jornadas").insert(jornadaRows).select("id");
       if (e2) throw e2;
       const playerRows = playerNames.map((n, i) => ({ season_id: season.id, name: n, sort_order: i }));
-      const { error: e3 } = await sb.from("players").insert(playerRows);
+      const { data: insertedPlayers, error: e3 } = await sb.from("players").insert(playerRows).select("id");
       if (e3) throw e3;
+      // Asistencia por default: todos los jugadores marcados en todas las Jornadas.
+      const attendanceRows = insertedJornadas.flatMap(jr => insertedPlayers.map(p => ({ jornada_id: jr.id, player_id: p.id })));
+      const { error: e4 } = await sb.from("jornada_attendance").insert(attendanceRows);
+      if (e4) throw e4;
     } catch (e) {
       showToast("No se pudo crear la temporada. Intenta de nuevo.");
     }
