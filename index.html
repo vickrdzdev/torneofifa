@@ -129,8 +129,15 @@
 
   .tabs { max-width: 920px; margin: 0 auto; padding: 10px 18px 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
-  /* En escritorio no hay deslizamiento táctil: las pestañas bajan de línea. */
-  @media (min-width: 900px) { .tabs { flex-wrap: wrap; overflow-x: visible; padding-bottom: 10px; } }
+  /* En escritorio: una fila con barra de desplazamiento delgada que solo
+     aparece al pasar el mouse (la rueda también desplaza a los lados). */
+  @media (min-width: 900px) and (hover: hover) {
+    .tabs { max-width: none; margin: 0 18px; padding: 10px 0 6px; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+    .tabs:hover { scrollbar-color: color-mix(in srgb, var(--text-muted) 55%, transparent) transparent; }
+    .tabs::-webkit-scrollbar { display: block; height: 6px; }
+    .tabs::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+    .tabs:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-muted) 55%, transparent); }
+  }
   .tab-btn {
     flex-shrink: 0; background: var(--surface); border: 1.5px solid var(--line); color: var(--text-muted);
     font-family: var(--font-display); font-weight: 700; font-size: 15px; padding: 8px 15px 6px; border-radius: 20px;
@@ -1904,12 +1911,24 @@
   }
 
   function render() {
+    const tabsEl = $(".tabs");
+    const tabsScroll = tabsEl ? tabsEl.scrollLeft : 0;
     const kept = captureScoreInputs();
     const a = document.activeElement;
     const focusId = a && a.id === "market-search" ? a.id : null;
     const caret = focusId ? a.selectionStart : null;
     renderInner();
     restoreScoreInputs(kept);
+    const newTabs = $(".tabs");
+    if (newTabs) {
+      newTabs.scrollLeft = tabsScroll;
+      const act = newTabs.querySelector(".tab-btn.active");
+      if (act) {
+        const a = act.getBoundingClientRect(), c = newTabs.getBoundingClientRect();
+        if (a.left < c.left) newTabs.scrollLeft -= (c.left - a.left) + 12;
+        else if (a.right > c.right) newTabs.scrollLeft += (a.right - c.right) + 12;
+      }
+    }
     if (focusId) {
       const el = document.getElementById(focusId);
       if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch (e) {} }
@@ -1994,6 +2013,13 @@
     if (action === "group-goal") setGroupGoal(el.dataset.j, el.dataset.match, el.dataset.side, el.value);
     else if (action === "ko-goal") setKOGoal(el.dataset.j, el.dataset.match, el.dataset.side, el.value);
   }
+  document.addEventListener("wheel", (e) => {
+    const tabs = e.target.closest && e.target.closest(".tabs");
+    if (!tabs || tabs.scrollWidth <= tabs.clientWidth) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    tabs.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }, { passive: false });
   let marketSearchTimer = null;
   document.addEventListener("input", (e) => {
     if (e.target.id !== "market-search") return;
