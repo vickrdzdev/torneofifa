@@ -200,7 +200,7 @@
   .rewards-block { margin-bottom: 22px; }
   .rewards-block .sub-note { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
   .empty-note { color: var(--text-muted); font-size: 14px; }
-  table.standings td.fc-cell { font-weight: 800; color: var(--gold); font-size: 15px; }
+  table.standings td.fc-cell { font-weight: 800; color: var(--blue); font-size: 15px; }
   .modal-box table.fc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 4px; }
   .modal-box table.fc-table th, .modal-box table.fc-table td { border: 1px solid var(--line); padding: 5px 4px; text-align: center; }
   .modal-box table.fc-table th { color: var(--text-muted); font-weight: 600; font-size: 11px; }
@@ -1458,7 +1458,7 @@
             return `<button class="tab-btn ${st} ${activeTab === jj.label ? "active" : ""}" data-action="set-tab" data-tab="${jj.label}"><span class="flag"></span>${jj.label}</button>`;
           }).join("")}
           <button class="tab-btn ${activeTab === "palmares" ? "active" : ""}" data-action="set-tab" data-tab="palmares">🏆 Palmarés</button>
-          <button class="tab-btn ${activeTab === "recompensas" ? "active" : ""}" data-action="set-tab" data-tab="recompensas">🎁 Recompensas</button>
+          <button class="tab-btn ${activeTab === "recompensas" ? "active" : ""}" data-action="set-tab" data-tab="recompensas">🪙 Recompensas</button>
           <button class="tab-btn ${activeTab === "general" ? "active" : ""}" data-action="set-tab" data-tab="general">📊 Tabla General</button>
         </div>
       </div>
