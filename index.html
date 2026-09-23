@@ -1069,7 +1069,7 @@
     let html = `<div class="section"><div class="section-head"><h2>Liguilla de la Jornada</h2><span class="sub">${pf.type === "7" ? "Repechaje + Semifinales + Final" : "Semifinales + Final"}</span></div>`;
 
     if (pf.type === "7") {
-      html += `<div class="bracket-stage"><p class="stage-title">Repechaje (empate se define por penales)</p>
+      html += `<div class="bracket-stage"><p class="stage-title">Repechaje (empate en tiempo regular se va a tiempos extras y si sigue el empate se define en penales)</p>
         <div class="bracket-grid two-col">
           ${koMatchBlock("3° vs 6°", pf.repechaje[0], j.id)}
           ${koMatchBlock("4° vs 5°", pf.repechaje[1], j.id)}
