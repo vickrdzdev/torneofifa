@@ -1062,8 +1062,8 @@
     if (pf.type === "7") {
       html += `<div class="bracket-stage"><p class="stage-title">Repechaje (directo, sin empate)</p>
         <div class="bracket-grid two-col">
-          ${koMatchBlock("3° vs 6°", pf.repechaje[0], j.id, rk(pf.repechaje[0].homeId) + " vs " + rk(pf.repechaje[0].awayId))}
-          ${koMatchBlock("4° vs 5°", pf.repechaje[1], j.id, rk(pf.repechaje[1].homeId) + " vs " + rk(pf.repechaje[1].awayId))}
+          ${koMatchBlock("3° vs 6°", pf.repechaje[0], j.id)}
+          ${koMatchBlock("4° vs 5°", pf.repechaje[1], j.id)}
         </div></div>`;
     }
     if (pf.semis.length === 2) {
