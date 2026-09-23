@@ -8,8 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Solo el carácter ϝ (FIFA Coins): Barlow/Inter no lo incluyen y cada sistema lo dibujaba distinto -->
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@600;800&text=%CF%9D&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -241,7 +239,7 @@
   }
   .topbar-inner.wide, .wrap.wide { max-width: 1400px; }
   .muted { color: var(--text-muted); }
-  .fc-sym { font-family: 'Noto Sans', sans-serif; text-transform: none; }
+  .fc-sym { width: .46em; height: .64em; vertical-align: -.04em; margin-right: .03em; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
   .neg { color: var(--red); }
   .pos { color: var(--accent); }
   .fc-text { color: var(--blue); }
@@ -1412,8 +1410,10 @@
   function cardPrice(rat, wf, sm) {
     return rat + (WF_BONUS[wf] || 0) + (SM_BONUS[sm] || 0);
   }
-  // HTML (ϝ con su fuente) y texto plano (para avisos y confirmaciones del navegador).
-  const FC_SYM = '<span class="fc-sym">ϝ</span>';
+  // ϝ dibujada como SVG: las fuentes no incluyen este carácter y cada sistema
+  // lo mostraba distinto (en Windows parecía una F). fcPlain es para avisos
+  // y confirmaciones del navegador, que solo aceptan texto.
+  const FC_SYM = '<svg class="fc-sym" viewBox="0 0 10 14" role="img" aria-label="ϝ"><path d="M3.1 13.2C3.3 9.6 3.8 6.6 4.9 4.6 5.8 3 7.1 2.2 8.7 2.6"/><path d="M1.8 8.3 7.4 7.6"/></svg>';
   function fcFormatted(n) { return (n < 0 ? "−" : "") + FC_SYM + Math.abs(n); }
   function fcPlain(n) { return (n < 0 ? "−ϝ" : "ϝ") + Math.abs(n); }
 
@@ -1851,7 +1851,7 @@
           </select>
           <label class="check-inline"><input type="checkbox" id="market-available" ${marketOnlyAvailable ? "checked" : ""}> Solo disponibles</label>
         </div>
-        <p class="qual-note" style="margin:0 0 4px;">Valor = RAT + bono WF (3★ +1 · 4★ +2 · 5★ +4) + bono SM (3★ +1 · 4★ +2 · 5★ +5)</p>
+        <p class="qual-note" style="margin:0 0 4px;">Valor = RAT + WF (3★ +1 · 4★ +2 · 5★ +4) + SM (3★ +1 · 4★ +2 · 5★ +5)</p>
         <div id="market-results">${marketResultsHtml()}</div>
       </div>`;
   }
