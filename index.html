@@ -930,7 +930,7 @@
         <td class="name-cell">${escapeHtml(playerName(s.playerId))}</td>
         <td>${s.pj}</td><td>${s.pg}</td><td>${s.pe}</td><td>${s.pp}</td>
         <td>${s.gf}</td><td>${s.gc}</td><td>${s.gd > 0 ? "+" + s.gd : s.gd}</td>
-        <td>${s.lc > 0 ? "+" + s.lc : "–"}</td>
+        <td>${s.lc > 0 ? "+" + s.lc : "0"}</td>
         <td class="pts-cell">${s.pts}</td>
       </tr>`).join("");
     return `
