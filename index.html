@@ -285,26 +285,41 @@
   }
 
   /* ============================== round robin + home balance (pure logic) ============================== */
-  function priorHomeCounts(activeIds, uptoIndex) {
-    const counts = {};
-    activeIds.forEach(id => counts[id] = 0);
+  // Balance de localía acumulado en Jornadas anteriores de la temporada:
+  // veces de local menos la mitad de los partidos jugados (0 = equilibrado,
+  // positivo = ha sido local de más). Así quien faltó a una Jornada no queda
+  // obligado a ser local en casi todo después.
+  function priorHomeBalance(activeIds, uptoIndex) {
+    const bal = {};
+    activeIds.forEach(id => bal[id] = 0);
     for (let k = 0; k < uptoIndex; k++) {
       const j = state.jornadas[k];
       if (!j || !j.matches) continue;
       j.matches.forEach(m => {
-        if (m.homeId && counts.hasOwnProperty(m.homeId)) counts[m.homeId]++;
+        if (bal.hasOwnProperty(m.homeId)) bal[m.homeId] += 0.5;
+        if (bal.hasOwnProperty(m.awayId)) bal[m.awayId] -= 0.5;
       });
     }
-    return counts;
+    return bal;
   }
 
-  function generateFixturesLocal(jIndex) {
-    const jornada = state.jornadas[jIndex];
-    const ids = jornada.activeIds.slice();
-    let arr = ids.slice();
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const k = Math.floor(Math.random() * (i + 1));
+      [a[i], a[k]] = [a[k], a[i]];
+    }
+    return a;
+  }
+  // Un calendario aleatorio: jugadores, fechas y partidos barajados; la
+  // localía se asigna de forma greedy según el balance de localía de cada
+  // quien (Jornadas anteriores + esta), con volado en caso de empate.
+  function randomFixtures(ids, prior) {
+    let arr = shuffle(ids);
     if (arr.length % 2 !== 0) arr.push(null);
     const n = arr.length;
-    const roundsPairs = [];
+    let roundsPairs = [];
     let rot = arr.slice();
     for (let r = 0; r < n - 1; r++) {
       const pairs = [];
@@ -312,32 +327,50 @@
         const p1 = rot[i], p2 = rot[n - 1 - i];
         if (p1 !== null && p2 !== null) pairs.push([p1, p2]);
       }
-      roundsPairs.push(pairs);
+      roundsPairs.push(shuffle(pairs));
       rot = [rot[0], rot[n - 1]].concat(rot.slice(1, n - 1));
     }
-    const prior = priorHomeCounts(ids, jIndex);
-    const local = {}; ids.forEach(id => local[id] = 0);
+    roundsPairs = shuffle(roundsPairs);
+    const local = {}, games = {};
+    ids.forEach(id => { local[id] = 0; games[id] = 0; });
     const matches = [];
-    let idx = 0;
     roundsPairs.forEach((pairs, rIdx) => {
       pairs.forEach(([a, b]) => {
-        const totalA = prior[a] + local[a];
-        const totalB = prior[b] + local[b];
+        const totalA = prior[a] + local[a] - games[a] / 2;
+        const totalB = prior[b] + local[b] - games[b] / 2;
         let home, away;
         if (totalA < totalB) { home = a; away = b; }
         else if (totalB < totalA) { home = b; away = a; }
-        else { if (idx % 2 === 0) { home = a; away = b; } else { home = b; away = a; } }
-        local[home]++;
+        else if (Math.random() < 0.5) { home = a; away = b; }
+        else { home = b; away = a; }
+        local[home]++; games[a]++; games[b]++;
         matches.push({
           id: null, round: rIdx + 1, homeId: home, awayId: away,
           homeGoals: null, awayGoals: null, shootoutWinnerId: null, played: false
         });
-        idx++;
       });
     });
-    jornada.matches = matches;
+    // Costo de balance: primero el balance acumulado de la temporada, luego
+    // que en esta Jornada cada quien sea local ~la mitad de sus partidos.
+    const seasonCost = ids.reduce((acc, id) => acc + (prior[id] + local[id] - games[id] / 2) ** 2, 0);
+    const jornadaCost = ids.reduce((acc, id) => acc + (local[id] - games[id] / 2) ** 2, 0);
+    return { matches, cost: seasonCost * 1000 + jornadaCost };
+  }
+  // Genera muchos calendarios aleatorios y se queda con el mejor balanceado,
+  // así el orden cambia cada vez sin sacrificar el balance de localía.
+  function generateFixturesLocal(jIndex) {
+    const jornada = state.jornadas[jIndex];
+    const ids = jornada.activeIds.slice();
+    const prior = priorHomeBalance(ids, jIndex);
+    let best = null;
+    for (let t = 0; t < 300; t++) {
+      const cand = randomFixtures(ids, prior);
+      if (!best || cand.cost < best.cost - 1e-9) best = cand;
+    }
+    jornada.matches = best.matches;
     jornada.playoff = null;
   }
+
 
   /* ============================== standings + tiebreaks (pure logic) ============================== */
   function headToHead(aId, bId, matches) {
