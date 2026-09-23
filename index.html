@@ -238,6 +238,8 @@
     .nav-toggle { display: flex; }
   }
   .topbar-inner.wide, .wrap.wide { max-width: 1400px; }
+  /* Con panel lateral, encabezado, pestañas y contenido alineados a la izquierda. */
+  @media (min-width: 900px) { .main .topbar-inner, .main .wrap { margin-left: 0; } }
   .muted { color: var(--text-muted); }
   .fc-sym { width: .46em; height: .64em; vertical-align: -.04em; margin-right: .03em; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
   .neg { color: var(--red); }
@@ -247,15 +249,20 @@
   .modal-box .fc-text { color: var(--blue); }
 
   /* ---------- equipos ---------- */
-  .balance-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
-  .balance-main { display: flex; flex-direction: column; }
-  .balance-main .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; }
-  .balance-main .val { font-family: var(--font-display); font-weight: 800; font-size: 40px; color: var(--blue); line-height: 1; }
-  .balance-main .val.neg { color: var(--red); }
-  .balance-breakdown { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--text-muted); }
-  .balance-breakdown strong { color: var(--text); }
-  .balance-breakdown strong.pos { color: var(--accent); }
-  .balance-breakdown strong.neg { color: var(--red); }
+  .team-head h2 { font-size: 38px; line-height: 1.05; }
+  .team-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .stat-card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; }
+  .stat-card .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; }
+  .stat-card .val { font-family: var(--font-display); font-weight: 800; font-size: 36px; color: var(--text); line-height: 1; }
+  .stat-card .val.saldo { color: var(--blue); }
+  .stat-card .val.neg { color: var(--red); }
+  @media (max-width: 560px) {
+    .team-head h2 { font-size: 32px; }
+    .team-stats { gap: 8px; }
+    .stat-card { padding: 12px 10px; }
+    .stat-card .lbl { font-size: 10px; letter-spacing: .02em; }
+    .stat-card .val { font-size: 26px; }
+  }
   .mini-btn { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 7px; font-weight: 700; font-size: 12.5px; padding: 5px 10px; }
   .mini-btn:hover { background: var(--accent-strong); }
   .mini-btn.danger { background: transparent; color: var(--red); border: 1px solid var(--line); padding: 3px 8px; }
@@ -1414,8 +1421,13 @@
   // lo mostraba distinto (en Windows parecía una F). fcPlain es para avisos
   // y confirmaciones del navegador, que solo aceptan texto.
   const FC_SYM = '<svg class="fc-sym" viewBox="0 0 10 14" role="img" aria-label="ϝ"><path d="M3.1 13.2C3.3 9.6 3.8 6.6 4.9 4.6 5.8 3 7.1 2.2 8.7 2.6"/><path d="M1.8 8.3 7.4 7.6"/></svg>';
-  function fcFormatted(n) { return (n < 0 ? "−" : "") + FC_SYM + Math.abs(n); }
-  function fcPlain(n) { return (n < 0 ? "−ϝ" : "ϝ") + Math.abs(n); }
+  // Cantidades de ϝ: enteras sin decimales; con fracción, 2 decimales.
+  function fcNumber(n) {
+    const a = Math.abs(n);
+    return Number.isInteger(Math.round(a * 100) / 100) ? String(Math.round(a)) : a.toFixed(2);
+  }
+  function fcFormatted(n) { return (n < 0 ? "−" : "") + FC_SYM + fcNumber(n); }
+  function fcPlain(n) { return (n < 0 ? "−ϝ" : "ϝ") + fcNumber(n); }
 
   // Saldo de cada participante: presupuesto inicial + FC ganadas - compras.
   function teamFinances() {
@@ -1722,16 +1734,14 @@
     const tabs = state.players.map(p => `<button class="tab-btn ${teamsTab === p.id ? "active" : ""}" data-action="set-team-tab" data-team="${p.id}">${escapeHtml(p.name)}</button>`).join("");
     const f = fin[teamsTab];
     const squad = (state.purchases || []).filter(pu => pu.player_id === teamsTab);
+    const avg = key => squad.length ? (squad.reduce((a, pu) => a + pu[key], 0) / squad.length).toFixed(1) : "–";
     const body = `
       <div class="section">
-        <div class="section-head"><h2>${escapeHtml(playerName(teamsTab))}</h2><span class="sub">Jugadores: ${f.count}/${SQUAD_SIZE}</span></div>
-        <div class="balance-card card">
-          <div class="balance-main"><span class="lbl">Saldo</span><span class="val ${f.balance < 0 ? "neg" : ""}">${fcFormatted(f.balance)}</span></div>
-          <div class="balance-breakdown">
-            <span>Presupuesto inicial <strong>${fcFormatted(INITIAL_BUDGET)}</strong></span>
-            <span>FC ganadas <strong class="pos">+${fcFormatted(f.earned)}</strong></span>
-            <span>Gastado <strong class="neg">−${fcFormatted(f.spent)}</strong></span>
-          </div>
+        <div class="section-head team-head"><h2>${escapeHtml(playerName(teamsTab))}</h2><span class="sub">Jugadores: ${f.count}/${SQUAD_SIZE}</span></div>
+        <div class="team-stats">
+          <div class="stat-card card"><span class="lbl">Saldo</span><span class="val saldo ${f.balance < 0 ? "neg" : ""}">${fcFormatted(f.balance)}</span></div>
+          <div class="stat-card card"><span class="lbl">Nivel promedio (RAT)</span><span class="val">${avg("rat")}</span></div>
+          <div class="stat-card card"><span class="lbl">Valor promedio</span><span class="val">${avg("price")}</span></div>
         </div>
         ${squad.length ? `
         <div class="table-scroll" style="margin-top:16px;">
