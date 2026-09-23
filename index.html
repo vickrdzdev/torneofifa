@@ -434,6 +434,14 @@
     return m.shootoutWinnerId || null;
   }
 
+  // Posición final de fase de grupos de cada jugador (rankOf) y sembrados
+  // (seeds). No se guardan en la base: se recalculan desde la tabla.
+  function playoffSeeding(jornada) {
+    const standings = computeStandings(jornada);
+    const rankOf = {}, seeds = {};
+    standings.forEach(s => { rankOf[s.playerId] = s.rank; seeds[s.rank] = s.playerId; });
+    return { rankOf, seeds };
+  }
   function buildPlayoff(jornada) {
     const standings = computeStandings(jornada);
     const rankOf = {};
@@ -524,17 +532,18 @@
         const finalMapped = finalM ? mapMatchRow(finalM) : null;
         playoff = {
           type: repM.length ? "7" : "4",
-          rankOf: {},
           repechaje: repM.map(mapMatchRow),
           semis: semiM.map(mapMatchRow),
           final: finalMapped,
           championId: finalMapped ? getWinner(finalMapped) : null
         };
       }
-      return {
+      const jornada = {
         id: jr.id, jornada_number: jr.jornada_number, label: jr.label,
         activeIds, matches: groupM.map(mapMatchRow), playoff
       };
+      if (playoff) Object.assign(playoff, playoffSeeding(jornada));
+      return jornada;
     });
 
     if (gen !== editGen) return;
