@@ -14,3 +14,11 @@ pública es segura de exponer: todo el control de acceso real vive en las polít
 de la base de datos (lectura pública, escritura solo para usuarios autenticados).
 
 El usuario admin se crea desde el dashboard de Supabase → Authentication → Users.
+
+## Mercado
+
+`market.json` contiene el mercado de jugadores (Futbin FC27), generado a partir del Excel
+`Futbin_FC27.xlsx`: se omiten columnas vacías y la duplicada `NAME AUX`, y se unifican las
+cartas repetidas del mismo jugador. Las compras se guardan en la tabla `team_purchases`
+de Supabase (una fila por jugador comprado, con el valor pagado).
+

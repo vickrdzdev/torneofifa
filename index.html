@@ -200,6 +200,83 @@
   .rewards-block { margin-bottom: 22px; }
   .rewards-block .sub-note { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
   .empty-note { color: var(--text-muted); font-size: 14px; }
+  /* ---------- shell con módulos ---------- */
+  .shell { display: flex; min-height: 100vh; }
+  .main { flex: 1; min-width: 0; }
+  .sidenav {
+    width: 200px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--surface); border-right: 1px solid var(--line);
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 16px; z-index: 60;
+  }
+  .sidenav-brand { font-family: var(--font-display); font-weight: 700; font-size: 20px; display: flex; align-items: center; gap: 8px; padding: 4px 8px 18px; }
+  .sidenav-brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  .sidenav nav { display: flex; flex-direction: column; gap: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: transparent; border: none; color: var(--text-muted); border-radius: 10px;
+    font-family: var(--font-display); font-weight: 700; font-size: 17px; padding: 10px 12px;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: var(--accent-ink); }
+  .nav-ic { width: 22px; text-align: center; }
+  .nav-toggle { display: none; margin-left: -8px; }
+  .brand-module { color: var(--text); }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  .nav-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 55; }
+  @media (max-width: 899px) {
+    .sidenav { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 0 0 40px rgba(0,0,0,.35); }
+    .sidenav.open { transform: translateX(0); }
+    .nav-toggle { display: flex; }
+  }
+  .topbar-inner.wide, .wrap.wide { max-width: 1400px; }
+  .muted { color: var(--text-muted); }
+  .neg { color: var(--red); }
+  .pos { color: var(--accent); }
+  .fc-text { color: var(--blue); }
+  .modal-box .attend-warn, .modal-box .neg { color: var(--red); }
+  .modal-box .fc-text { color: var(--blue); }
+
+  /* ---------- equipos ---------- */
+  .balance-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+  .balance-main { display: flex; flex-direction: column; }
+  .balance-main .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; }
+  .balance-main .val { font-family: var(--font-display); font-weight: 800; font-size: 40px; color: var(--blue); line-height: 1; }
+  .balance-main .val.neg { color: var(--red); }
+  .balance-breakdown { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--text-muted); }
+  .balance-breakdown strong { color: var(--text); }
+  .balance-breakdown strong.pos { color: var(--accent); }
+  .balance-breakdown strong.neg { color: var(--red); }
+  .mini-btn { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 7px; font-weight: 700; font-size: 12.5px; padding: 5px 10px; }
+  .mini-btn:hover { background: var(--accent-strong); }
+  .mini-btn.danger { background: transparent; color: var(--red); border: 1px solid var(--line); padding: 3px 8px; }
+  .mini-btn.danger:hover { border-color: var(--red); }
+
+  /* ---------- mercado ---------- */
+  .draft-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; background: var(--surface); border: 1.5px solid var(--accent); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; font-size: 14px; }
+  .draft-banner.muted { border-color: var(--line); color: var(--text-muted); }
+  .draft-tag { background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 12px; border-radius: 6px; padding: 3px 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .draft-turn strong { color: var(--accent); font-size: 16px; }
+  .market-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .market-controls #market-search { flex: 1 1 260px; }
+  .market-controls select.text-input { flex: 0 0 auto; }
+  .check-inline { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); white-space: nowrap; }
+  .pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0; font-size: 14px; }
+  .pager-btns { display: flex; align-items: center; gap: 10px; }
+  .pager .btn-secondary:disabled { opacity: .4; cursor: not-allowed; }
+  .market-scroll { max-height: 70vh; overflow: auto; }
+  table.market-table thead th { position: sticky; top: 0; z-index: 2; }
+  table.market-table td.name-cell { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 150px; white-space: normal; }
+  table.market-table thead th:nth-child(2) { position: sticky; left: 0; z-index: 3; }
+  table.market-table td.photo-cell { padding: 3px 4px 3px 10px; }
+  table.market-table td.photo-cell img { display: block; border-radius: 6px; object-fit: cover; background: var(--surface-2); }
+  table.market-table a { color: var(--blue); text-decoration: none; font-weight: 600; }
+  table.market-table tr.sold td { color: var(--text-muted); opacity: .75; }
+  table.market-table tr.sold td.name-cell { text-decoration: line-through; color: var(--red); }
+  .sold-badge { display: inline-block; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; font-size: 12px; font-weight: 700; color: var(--text); opacity: 1; }
+  .team-pick { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; }
+  .team-opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; color: var(--text); font-weight: 600; font-size: 15px; text-align: left; }
+  .team-opt.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+  .turn-tag { background: var(--accent); color: var(--accent-ink); font-size: 10.5px; border-radius: 5px; padding: 1px 6px; text-transform: uppercase; font-weight: 700; margin-left: 4px; }
   table.standings td.fc-cell { font-weight: 800; color: var(--blue); font-size: 15px; }
   .modal-box table.fc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 4px; }
   .modal-box table.fc-table th, .modal-box table.fc-table td { border: 1px solid var(--line); padding: 5px 4px; text-align: center; }
@@ -292,7 +369,20 @@
   let activeTab = null;
   let isAdmin = false;
   let loading = true;
-  let state = null; // { season, players, jornadas: [...] }
+  let state = null; // { season, players, jornadas: [...], purchases: [...] }
+  // Módulos: "torneo" | "equipos" | "mercado"
+  let activeModule = "torneo";
+  let navOpen = false;
+  let teamsTab = null;
+  let market = null;          // jugadores del mercado (market.json)
+  let marketLoading = false;
+  let marketError = false;
+  let marketQuery = "";
+  let marketPos = "";
+  let marketOnlyAvailable = false;
+  let marketPage = 0;
+  let buyCardId = null;       // modal de compra abierto
+  let buyTeamId = null;
 
   function playerName(id) {
     const p = state.players.find(pl => pl.id === id);
@@ -594,8 +684,15 @@
       return jornada;
     });
 
+    // Si las compras no cargan, el Torneo sigue funcionando.
+    let purchases = [];
+    try {
+      const res = await sb.from("team_purchases").select("*").eq("season_id", season.id).order("created_at");
+      purchases = res.data || [];
+    } catch (e) { purchases = []; }
+
     if (gen !== editGen) return;
-    state = { season, players: players || [], jornadas };
+    state = { season, players: players || [], jornadas, purchases: purchases || [] };
   }
 
   function newId() {
@@ -847,6 +944,7 @@
       .on("postgres_changes", { event: "*", schema: "public", table: "players" }, scheduleReload)
       .on("postgres_changes", { event: "*", schema: "public", table: "jornadas" }, scheduleReload)
       .on("postgres_changes", { event: "*", schema: "public", table: "seasons" }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_purchases" }, scheduleReload)
       .subscribe();
   }
 
@@ -1281,6 +1379,85 @@
     };
   }
 
+  // FC de un jugador en una Jornada. Se reparten con la Tabla General al final
+  // de la Jornada (incluye el bono de su Final), así que esperan a la Final.
+  function jornadaFifaCoins(j, r, snaps, row) {
+    if (!r.finalDone) return null;
+    const snap = snaps[j.label];
+    return fifaCoins(snap.rank[row.playerId], snap.leaderTotal - snap.total[row.playerId], row.place == null);
+  }
+
+  /* ============================== equipos y mercado ============================== */
+  const INITIAL_BUDGET = 1000;
+  const SQUAD_SIZE = 14;
+  const WF_BONUS = { 3: 1, 4: 2, 5: 4 };
+  const SM_BONUS = { 3: 1, 4: 2, 5: 5 };
+  function cardPrice(rat, wf, sm) {
+    return rat + (WF_BONUS[wf] || 0) + (SM_BONUS[sm] || 0);
+  }
+  function fcFormatted(n) { return n < 0 ? "−ϝ" + (-n) : "ϝ" + n; }
+
+  // Saldo de cada participante: presupuesto inicial + FC ganadas - compras.
+  function teamFinances() {
+    const snaps = generalTable().snapshots;
+    const fin = {};
+    state.players.forEach(p => fin[p.id] = { earned: 0, spent: 0, count: 0 });
+    state.jornadas.forEach(j => {
+      const r = jornadaRewards(j);
+      if (!r) return;
+      r.rows.forEach(row => {
+        const fc = jornadaFifaCoins(j, r, snaps, row);
+        if (fc != null && fin[row.playerId]) fin[row.playerId].earned += fc;
+      });
+    });
+    (state.purchases || []).forEach(pu => {
+      if (!fin[pu.player_id]) return;
+      fin[pu.player_id].spent += pu.price;
+      fin[pu.player_id].count++;
+    });
+    Object.values(fin).forEach(f => f.balance = INITIAL_BUDGET + f.earned - f.spent);
+    return fin;
+  }
+
+  // Turno del Draft inicial: snake según la Tabla General al terminar J0,
+  // empezando por el último lugar. Solo informativo (no se fuerza).
+  function draftTurn() {
+    const j0 = state.jornadas[0];
+    const r0 = j0 && jornadaRewards(j0);
+    if (!r0 || !r0.finalDone) return { status: "waiting" };
+    const snap = generalTable().snapshots[j0.label];
+    const order = state.players.map(p => p.id).sort((a, b) => snap.rank[a] - snap.rank[b]);
+    const n = order.length;
+    const total = n * SQUAD_SIZE;
+    const picks = (state.purchases || []).length;
+    if (picks >= total) return { status: "done" };
+    const reversed = order.slice().reverse();
+    const turnAt = k => (Math.floor(k / n) % 2 === 0 ? reversed : order)[k % n];
+    return {
+      status: "active", round: Math.floor(picks / n) + 1, pick: picks + 1, total,
+      playerId: turnAt(picks), nextId: picks + 1 < total ? turnAt(picks + 1) : null
+    };
+  }
+
+  function normalizeText(t) {
+    return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  function loadMarket() {
+    if (market || marketLoading) return;
+    marketLoading = true; marketError = false;
+    fetch("market.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+      const idx = {}; d.cols.forEach((c, i) => idx[c] = i);
+      market = d.rows.map(row => {
+        const o = {}; d.cols.forEach((c, i) => o[c] = row[i]);
+        o.price = cardPrice(o.rat, o.wf, o.sm);
+        o.search = normalizeText(o.name);
+        return o;
+      });
+      market.byId = {}; market.forEach(m => market.byId[m.id] = m);
+      marketLoading = false; render();
+    }).catch(() => { marketLoading = false; marketError = true; render(); });
+  }
+
   function rewardsLegendHtml() {
     const places = REWARD_POINTS.map((p, i) => `${i + 1}° = ${p}`).join(" · ");
     return `<p class="qual-note">Puntos por lugar en la fase de grupos: ${places} · Faltó = ${ABSENT_POINTS}. Bono de la Final: Campeón +${CHAMPION_BONUS}, Subcampeón +${RUNNER_UP_BONUS}.</p>`;
@@ -1288,13 +1465,7 @@
   function renderRewards() {
     const done = state.jornadas.map(j => ({ j, r: jornadaRewards(j) })).filter(x => x.r).reverse();
     const snaps = generalTable().snapshots;
-    // Las FC se reparten con la Tabla General al final de la Jornada
-    // (incluye el bono de su Final), así que esperan a que termine la Final.
-    const fcOf = (j, r, row) => {
-      if (!r.finalDone) return null;
-      const snap = snaps[j.label];
-      return fifaCoins(snap.rank[row.playerId], snap.leaderTotal - snap.total[row.playerId], row.place == null);
-    };
+    const fcOf = (j, r, row) => jornadaFifaCoins(j, r, snaps, row);
     let html = `<div class="section">
       <div class="section-head"><h2>Recompensas</h2><span class="sub">Puntos por Jornada</span></div>
       ${rewardsLegendHtml()}
@@ -1395,6 +1566,10 @@
             <tr><td><strong>Faltó</strong></td>${FC_ABSENT.map(v => `<td>ϝ${v}</td>`).join("")}</tr>
           </tbody>
         </table></div>
+        <h4>Equipos, Mercado y Draft</h4>
+        <p>Cada participante arma un equipo de <strong>${SQUAD_SIZE} jugadores</strong> (11 titulares + 3 de banca) comprándolos en el Mercado con sus FIFA Coins. Saldo = ${fcFormatted(INITIAL_BUDGET)} iniciales + FC ganadas en las Jornadas − compras.</p>
+        <p>Valor de un jugador = RAT + bono de pierna débil (WF 3★ +1, 4★ +2, 5★ +4) + bono de skills (SM 3★ +1, 4★ +2, 5★ +5).</p>
+        <p><strong>Draft inicial:</strong> empieza al terminar la J0. Se compra uno a uno en formato snake: la primera ronda va del último al primer lugar de la Tabla General, la segunda del primero al último, y así sucesivamente. Un jugador comprado ya no está disponible. Solo el admin registra las compras.</p>
         <h4>Tus datos</h4>
         <p>Todo se guarda en una base de datos real y se sincroniza al instante entre todos los que tengan la app abierta. Solo el admin puede editar; el resto puede ver todo en vivo sin iniciar sesión.</p>
         <div class="modal-close-row"><button class="btn-secondary" data-action="close-help">Cerrar</button></div>
@@ -1423,8 +1598,64 @@
   }
 
   /* ============================== render: dashboard ============================== */
+  function topbarActionsHtml() {
+    return `
+          <div class="topbar-actions">
+            <button class="icon-btn" title="Reglas" data-action="open-help">ℹ️</button>
+            <button class="icon-btn" title="Descargar respaldo" data-action="download-backup">⭳</button>
+            ${isAdmin
+              ? `<button class="icon-btn" title="Cerrar sesión admin" data-action="admin-logout">🔓</button>
+                 <button class="icon-btn" title="Nueva temporada" data-action="new-season">⟲</button>`
+              : `<button class="icon-btn" title="Entrar como admin" data-action="open-login">🔒</button>`
+            }
+          </div>`;
+  }
+  const MODULES = [
+    { id: "torneo", icon: "🏆", label: "Torneo" },
+    { id: "equipos", icon: "👕", label: "Equipos" },
+    { id: "mercado", icon: "🛒", label: "Mercado" }
+  ];
   function renderDashboard() {
     const app = $("#app");
+    let topTabs = "", body = "", wide = false;
+    if (activeModule === "equipos") {
+      ({ tabs: topTabs, body } = renderTeamsModule());
+    } else if (activeModule === "mercado") {
+      body = renderMarketModule(); wide = true;
+    } else {
+      ({ tabs: topTabs, body } = renderTournamentModule());
+    }
+    const moduleLabel = MODULES.find(m => m.id === activeModule).label;
+    app.innerHTML = `
+      <div class="shell">
+        <aside class="sidenav ${navOpen ? "open" : ""}">
+          <div class="sidenav-brand"><span class="dot live"></span>${escapeHtml(state.season.name)}</div>
+          <nav>
+            ${MODULES.map(m => `<button class="nav-item ${activeModule === m.id ? "active" : ""}" data-action="set-module" data-module="${m.id}"><span class="nav-ic">${m.icon}</span>${m.label}</button>`).join("")}
+          </nav>
+        </aside>
+        ${navOpen ? `<div class="nav-backdrop" data-action="close-nav"></div>` : ""}
+        <div class="main">
+          <div class="topbar">
+            <div class="topbar-inner ${wide ? "wide" : ""}">
+              <div class="brand">
+                <button class="icon-btn nav-toggle" title="Menú" data-action="open-nav">☰</button>
+                <span class="brand-module">${moduleLabel}</span>
+              </div>
+              ${topbarActionsHtml()}
+            </div>
+            ${topTabs ? `<div class="tabs">${topTabs}</div>` : ""}
+          </div>
+          <div class="wrap ${wide ? "wide" : ""}" style="padding-top:20px;">${body}</div>
+        </div>
+      </div>
+      ${helpModalHtml()}
+      ${loginModalHtml()}
+      ${buyModalHtml()}
+      ${toastMessage ? `<div class="toast">${escapeHtml(toastMessage)}</div>` : ""}
+    `;
+  }
+  function renderTournamentModule() {
     const specialTabs = ["palmares", "recompensas", "general"];
     if (!activeTab || (!specialTabs.includes(activeTab) && !state.jornadas.some(x => x.label === activeTab))) {
       activeTab = state.jornadas[0].label;
@@ -1438,36 +1669,218 @@
     else if (j.matches.length === 0) body = renderAttendanceStage(j);
     else body = renderGroupStage(j) + renderPlayoff(j);
 
-    app.innerHTML = `
-      <div class="topbar">
-        <div class="topbar-inner">
-          <div class="brand"><span class="dot live"></span>${escapeHtml(state.season.name)}</div>
-          <div class="topbar-actions">
-            <button class="icon-btn" title="Reglas" data-action="open-help">ℹ️</button>
-            <button class="icon-btn" title="Descargar respaldo" data-action="download-backup">⭳</button>
-            ${isAdmin
-              ? `<button class="icon-btn" title="Cerrar sesión admin" data-action="admin-logout">🔓</button>
-                 <button class="icon-btn" title="Nueva temporada" data-action="new-season">⟲</button>`
-              : `<button class="icon-btn" title="Entrar como admin" data-action="open-login">🔒</button>`
-            }
-          </div>
-        </div>
-        <div class="tabs">
+    const tabs = `
           ${state.jornadas.map(jj => {
             const st = jornadaStatus(jj);
             return `<button class="tab-btn ${st} ${activeTab === jj.label ? "active" : ""}" data-action="set-tab" data-tab="${jj.label}"><span class="flag"></span>${jj.label}</button>`;
           }).join("")}
           <button class="tab-btn ${activeTab === "palmares" ? "active" : ""}" data-action="set-tab" data-tab="palmares">🏆 Palmarés</button>
           <button class="tab-btn ${activeTab === "recompensas" ? "active" : ""}" data-action="set-tab" data-tab="recompensas">🪙 Recompensas</button>
-          <button class="tab-btn ${activeTab === "general" ? "active" : ""}" data-action="set-tab" data-tab="general">📊 Tabla General</button>
+          <button class="tab-btn ${activeTab === "general" ? "active" : ""}" data-action="set-tab" data-tab="general">📊 Tabla General</button>`;
+    return { tabs, body };
+  }
+
+  /* ============================== módulo: equipos ============================== */
+  function renderTeamsModule() {
+    if (!teamsTab || !state.players.some(p => p.id === teamsTab)) teamsTab = state.players[0] && state.players[0].id;
+    const fin = teamFinances();
+    const tabs = state.players.map(p => `<button class="tab-btn ${teamsTab === p.id ? "active" : ""}" data-action="set-team-tab" data-team="${p.id}">${escapeHtml(p.name)}</button>`).join("");
+    const f = fin[teamsTab];
+    const squad = (state.purchases || []).filter(pu => pu.player_id === teamsTab);
+    const body = `
+      <div class="section">
+        <div class="section-head"><h2>${escapeHtml(playerName(teamsTab))}</h2><span class="sub">Jugadores: ${f.count}/${SQUAD_SIZE}</span></div>
+        <div class="balance-card card">
+          <div class="balance-main"><span class="lbl">Saldo</span><span class="val ${f.balance < 0 ? "neg" : ""}">${fcFormatted(f.balance)}</span></div>
+          <div class="balance-breakdown">
+            <span>Presupuesto inicial <strong>${fcFormatted(INITIAL_BUDGET)}</strong></span>
+            <span>FC ganadas <strong class="pos">+${fcFormatted(f.earned)}</strong></span>
+            <span>Gastado <strong class="neg">−${fcFormatted(f.spent)}</strong></span>
+          </div>
+        </div>
+        ${squad.length ? `
+        <div class="table-scroll" style="margin-top:16px;">
+          <table class="standings compact">
+            <thead><tr>
+              <th style="text-align:left">Jugador</th><th>POS</th><th>RAT</th><th>WF</th><th>SM</th><th>Valor</th>${isAdmin ? "<th></th>" : ""}
+            </tr></thead>
+            <tbody>${squad.map(pu => `
+              <tr>
+                <td class="name-cell">${escapeHtml(pu.card_name)}</td>
+                <td>${escapeHtml(pu.pos || "")}</td>
+                <td>${pu.rat}</td>
+                <td>${pu.wf}★</td>
+                <td>${pu.sm}★</td>
+                <td class="fc-cell">${fcFormatted(pu.price)}</td>
+                ${isAdmin ? `<td><button class="mini-btn danger" title="Quitar del equipo (reembolsa)" data-action="undo-purchase" data-purchase="${pu.id}">✕</button></td>` : ""}
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>` : `<div class="card empty-note" style="margin-top:16px;">Todavía no ha comprado jugadores.</div>`}
+      </div>`;
+    return { tabs, body };
+  }
+
+  /* ============================== módulo: mercado ============================== */
+  const MARKET_PAGE_SIZE = 50;
+  const MARKET_POSITIONS = ["GK", "CB", "LB", "RB", "CDM", "CM", "CAM", "LM", "RM", "LW", "RW", "ST"];
+  function soldMap() {
+    const m = {};
+    (state.purchases || []).forEach(pu => m[pu.card_id] = pu);
+    return m;
+  }
+  function filteredMarket() {
+    const q = normalizeText(marketQuery.trim());
+    const sold = soldMap();
+    return market.filter(m =>
+      (!q || m.search.includes(q)) &&
+      (!marketPos || m.pos === marketPos) &&
+      (!marketOnlyAvailable || !sold[m.id]));
+  }
+  function draftBannerHtml() {
+    const t = draftTurn();
+    if (t.status === "waiting") return `<div class="draft-banner muted">🕒 El Draft inicial empieza al terminar la J0 (incluida su Final).</div>`;
+    if (t.status === "done") return `<div class="draft-banner muted">✅ Draft inicial completo.</div>`;
+    const fin = teamFinances();
+    return `<div class="draft-banner">
+      <span class="draft-tag">Draft inicial</span>
+      <span>Ronda <strong>${t.round}</strong>/${SQUAD_SIZE} · Selección <strong>${t.pick}</strong>/${t.total}</span>
+      <span class="draft-turn">Turno de: <strong>${escapeHtml(playerName(t.playerId))}</strong> <span class="muted">(${fcFormatted(fin[t.playerId].balance)})</span></span>
+      ${t.nextId ? `<span class="muted">Sigue: ${escapeHtml(playerName(t.nextId))}</span>` : ""}
+    </div>`;
+  }
+  function marketResultsHtml() {
+    const list = filteredMarket();
+    const pages = Math.max(1, Math.ceil(list.length / MARKET_PAGE_SIZE));
+    if (marketPage >= pages) marketPage = pages - 1;
+    const slice = list.slice(marketPage * MARKET_PAGE_SIZE, (marketPage + 1) * MARKET_PAGE_SIZE);
+    const sold = soldMap();
+    const pager = `
+      <div class="pager">
+        <span class="muted">${list.length.toLocaleString("es-MX")} jugadores</span>
+        <span class="pager-btns">
+          <button class="btn-secondary" data-action="market-page" data-dir="-1" ${marketPage === 0 ? "disabled" : ""}>‹ Anterior</button>
+          <span>${marketPage + 1} / ${pages}</span>
+          <button class="btn-secondary" data-action="market-page" data-dir="1" ${marketPage >= pages - 1 ? "disabled" : ""}>Siguiente ›</button>
+        </span>
+      </div>`;
+    const dash = v => (v === null || v === undefined || v === "") ? "–" : escapeHtml(v);
+    return `${pager}
+      <div class="table-scroll market-scroll">
+        <table class="standings compact market-table">
+          <thead><tr>
+            <th></th><th style="text-align:left">Nombre</th><th>Valor</th><th>Estado</th>
+            <th>RAT</th><th>POS</th><th>ALT POS</th><th>FUTBIN RAT</th><th>FUTBIN POS</th><th>FOOT</th>
+            <th>SM</th><th>WF</th><th>PAC</th><th>SHO</th><th>PAS</th><th>DRI</th><th>DEF</th><th>PHY</th>
+            <th>BODY</th><th>ACCELERATE</th><th>Carta</th>
+          </tr></thead>
+          <tbody>${slice.map(m => {
+            const pu = sold[m.id];
+            const status = pu
+              ? `<span class="sold-badge">👕 ${escapeHtml(playerName(pu.player_id))}</span>`
+              : (isAdmin ? `<button class="mini-btn" data-action="open-buy" data-card="${m.id}">Comprar</button>` : `<span class="muted">Disponible</span>`);
+            return `<tr class="${pu ? "sold" : ""}">
+              <td class="photo-cell"><img src="https://cdn3.futbin.com/content/fifa27/img/players/${escapeHtml(m.photo)}" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></td>
+              <td class="name-cell">${escapeHtml(m.name)}</td>
+              <td class="fc-cell">${fcFormatted(m.price)}</td>
+              <td>${status}</td>
+              <td><strong>${m.rat}</strong></td><td>${dash(m.pos)}</td><td>${dash(m.altPos)}</td>
+              <td>${dash(m.futbinRat)}</td><td>${dash(m.futbinPos)}</td><td>${dash(m.foot)}</td>
+              <td>${m.sm}★</td><td>${m.wf}★</td>
+              <td>${m.pac}</td><td>${m.sho}</td><td>${m.pas}</td><td>${m.dri}</td><td>${m.def}</td><td>${m.phy}</td>
+              <td>${dash(m.body)}</td><td>${dash(m.accelerate)}</td>
+              <td><a href="https://www.futbin.com/27/player/${m.id}/${escapeHtml(m.cardSlug)}" target="_blank" rel="noopener">Ver ↗</a></td>
+            </tr>`;
+          }).join("")}
+          </tbody>
+        </table>
+      </div>
+      ${list.length > MARKET_PAGE_SIZE ? pager : ""}`;
+  }
+  function renderMarketModule() {
+    if (!market) {
+      loadMarket();
+      return `<div class="section"><div class="section-head"><h2>Mercado</h2></div>
+        <div class="card empty-note">${marketError ? `No se pudo cargar el mercado. <button class="btn-secondary" data-action="retry-market">Reintentar</button>` : "Cargando mercado…"}</div></div>`;
+    }
+    return `
+      <div class="section">
+        <div class="section-head"><h2>Mercado</h2><span class="sub">Valor = RAT + bono WF (3★ +1 · 4★ +2 · 5★ +4) + bono SM (3★ +1 · 4★ +2 · 5★ +5)</span></div>
+        ${draftBannerHtml()}
+        <div class="market-controls">
+          <input class="text-input" id="market-search" type="search" placeholder="Buscar jugador por nombre…" value="${escapeHtml(marketQuery)}" autocomplete="off">
+          <select class="text-input" id="market-pos">
+            <option value="">Todas las posiciones</option>
+            ${MARKET_POSITIONS.map(p => `<option value="${p}" ${marketPos === p ? "selected" : ""}>${p}</option>`).join("")}
+          </select>
+          <label class="check-inline"><input type="checkbox" id="market-available" ${marketOnlyAvailable ? "checked" : ""}> Solo disponibles</label>
+        </div>
+        <div id="market-results">${marketResultsHtml()}</div>
+      </div>`;
+  }
+  function refreshMarketResults() {
+    const el = $("#market-results");
+    if (el) el.innerHTML = marketResultsHtml();
+  }
+
+  function buyModalHtml() {
+    if (!buyCardId || !market || !isAdmin) return "";
+    const m = market.byId[buyCardId];
+    if (!m) return "";
+    const fin = teamFinances();
+    const turn = draftTurn();
+    if (!buyTeamId) buyTeamId = turn.status === "active" ? turn.playerId : state.players[0].id;
+    const after = fin[buyTeamId].balance - m.price;
+    const wfB = WF_BONUS[m.wf] || 0, smB = SM_BONUS[m.sm] || 0;
+    return `
+    <div class="modal-overlay">
+      <div class="modal-box" data-stop-close>
+        <h3>Comprar a ${escapeHtml(m.name)}</h3>
+        <p class="muted" style="margin-top:-4px;">${escapeHtml(m.pos)} · RAT ${m.rat} · WF ${m.wf}★ · SM ${m.sm}★</p>
+        <p>Valor: RAT ${m.rat} + WF ${wfB} + SM ${smB} = <strong class="fc-text">${fcFormatted(m.price)}</strong></p>
+        <h4>¿Para qué equipo?</h4>
+        <div class="team-pick">
+          ${state.players.map(p => `
+            <button class="team-opt ${buyTeamId === p.id ? "active" : ""}" data-action="buy-pick-team" data-team="${p.id}">
+              <span>${escapeHtml(p.name)}${turn.status === "active" && turn.playerId === p.id ? ' <span class="turn-tag">turno</span>' : ""}</span>
+              <span class="muted">${fcFormatted(fin[p.id].balance)} · ${fin[p.id].count}/${SQUAD_SIZE}</span>
+            </button>`).join("")}
+        </div>
+        <p>Saldo después de la compra: <strong class="${after < 0 ? "neg" : ""}">${fcFormatted(after)}</strong></p>
+        ${after < 0 ? `<p class="attend-warn">${escapeHtml(playerName(buyTeamId))} no tiene saldo suficiente para este jugador.</p>` : ""}
+        <div class="modal-close-row" style="gap:10px;">
+          <button class="btn-secondary" data-action="close-buy">Cancelar</button>
+          <button class="btn-primary" style="width:auto;" data-action="confirm-buy" ${after < 0 ? "disabled" : ""}>Confirmar compra</button>
         </div>
       </div>
-      <div class="wrap" style="padding-top:20px;">${body}</div>
-      ${helpModalHtml()}
-      ${loginModalHtml()}
-      ${toastMessage ? `<div class="toast">${escapeHtml(toastMessage)}</div>` : ""}
-    `;
+    </div>`;
   }
+  async function confirmPurchase() {
+    if (!isAdmin || !buyCardId || !buyTeamId) return;
+    const m = market.byId[buyCardId];
+    const fin = teamFinances();
+    if (fin[buyTeamId].balance < m.price) { showToast("Saldo insuficiente."); return; }
+    if (soldMap()[m.id]) { showToast("Ese jugador ya fue comprado."); buyCardId = null; render(); return; }
+    const teamId = buyTeamId;
+    buyCardId = null; buyTeamId = null;
+    const { error } = await sb.from("team_purchases").insert({
+      season_id: state.season.id, player_id: teamId, card_id: m.id, card_name: m.name,
+      pos: m.pos, rat: m.rat, wf: m.wf, sm: m.sm, price: m.price
+    });
+    if (error) showToast(error.code === "23505" ? "Ese jugador ya fue comprado." : "No se pudo registrar la compra.");
+    else showToast(m.name + " → " + playerName(teamId) + " (" + fcFormatted(m.price) + ")");
+    await loadSeasonData(); render();
+  }
+  async function undoPurchase(purchaseId) {
+    if (!isAdmin) return;
+    const pu = (state.purchases || []).find(x => x.id === purchaseId);
+    if (!pu) return;
+    if (!confirm("¿Quitar a " + pu.card_name + " del equipo de " + playerName(pu.player_id) + "? Regresa al mercado y se reembolsan " + fcFormatted(pu.price) + ".")) return;
+    const { error } = await sb.from("team_purchases").delete().eq("id", purchaseId);
+    if (error) showToast("No se pudo deshacer la compra.");
+    await loadSeasonData(); render();
+  }
+
 
   /* ============================== root render + delegation ============================== */
   // Guarda lo que el usuario está escribiendo en los marcadores (y el foco)
@@ -1490,8 +1903,15 @@
 
   function render() {
     const kept = captureScoreInputs();
+    const a = document.activeElement;
+    const focusId = a && a.id === "market-search" ? a.id : null;
+    const caret = focusId ? a.selectionStart : null;
     renderInner();
     restoreScoreInputs(kept);
+    if (focusId) {
+      const el = document.getElementById(focusId);
+      if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch (e) {} }
+    }
   }
   function renderInner() {
     if (loading) {
@@ -1504,7 +1924,7 @@
 
   document.addEventListener("click", (e) => {
     const overlay = e.target.closest(".modal-overlay");
-    if (overlay && !e.target.closest("[data-stop-close]")) { helpOpen = false; loginOpen = false; render(); return; }
+    if (overlay && !e.target.closest("[data-stop-close]")) { helpOpen = false; loginOpen = false; buyCardId = null; buyTeamId = null; render(); return; }
 
     const el = e.target.closest("[data-action]");
     if (!el) return;
@@ -1537,6 +1957,17 @@
       case "group-pk": setGroupShootout(el.dataset.j, el.dataset.match, el.dataset.winner); break;
       case "ko-pk": setKOShootout(el.dataset.j, el.dataset.match, el.dataset.winner); break;
       case "set-tab": activeTab = el.dataset.tab; render(); break;
+      case "set-module": activeModule = el.dataset.module; navOpen = false; render(); window.scrollTo(0, 0); break;
+      case "open-nav": navOpen = true; render(); break;
+      case "close-nav": navOpen = false; render(); break;
+      case "set-team-tab": teamsTab = el.dataset.team; render(); break;
+      case "market-page": marketPage += parseInt(el.dataset.dir, 10); refreshMarketResults(); break;
+      case "retry-market": marketError = false; loadMarket(); render(); break;
+      case "open-buy": buyCardId = parseInt(el.dataset.card, 10); buyTeamId = null; render(); break;
+      case "buy-pick-team": buyTeamId = el.dataset.team; render(); break;
+      case "close-buy": buyCardId = null; buyTeamId = null; render(); break;
+      case "confirm-buy": confirmPurchase(); break;
+      case "undo-purchase": undoPurchase(el.dataset.purchase); break;
       case "open-help": helpOpen = true; render(); break;
       case "close-help": helpOpen = false; render(); break;
       case "download-backup": downloadBackup(); break;
@@ -1561,7 +1992,16 @@
     if (action === "group-goal") setGroupGoal(el.dataset.j, el.dataset.match, el.dataset.side, el.value);
     else if (action === "ko-goal") setKOGoal(el.dataset.j, el.dataset.match, el.dataset.side, el.value);
   }
+  let marketSearchTimer = null;
+  document.addEventListener("input", (e) => {
+    if (e.target.id !== "market-search") return;
+    marketQuery = e.target.value;
+    clearTimeout(marketSearchTimer);
+    marketSearchTimer = setTimeout(() => { marketPage = 0; refreshMarketResults(); }, 150);
+  });
   document.addEventListener("change", (e) => {
+    if (e.target.id === "market-pos") { marketPos = e.target.value; marketPage = 0; refreshMarketResults(); return; }
+    if (e.target.id === "market-available") { marketOnlyAvailable = e.target.checked; marketPage = 0; refreshMarketResults(); return; }
     const el = e.target.closest("[data-action]");
     if (!el) return;
     if (el.dataset.action === "group-goal" || el.dataset.action === "ko-goal") submitGoal(el);
