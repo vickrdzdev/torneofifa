@@ -905,7 +905,7 @@
 
   function renderSetup() {
     const app = $("#app");
-    const chosen = renderSetup._count || 6;
+    const chosen = renderSetup._count || 7;
     const names = renderSetup._names || [];
     const seasonName = renderSetup._seasonName != null ? renderSetup._seasonName : "FC27";
     const opts = [7, 6, 5, 4];
@@ -1519,7 +1519,7 @@
       }
       case "create-tournament": {
         if (!isAdmin) break;
-        const n = renderSetup._count || 6;
+        const n = renderSetup._count || 7;
         const names = [];
         for (let i = 0; i < n; i++) {
           const v = (renderSetup._names && renderSetup._names[i]) ? renderSetup._names[i].trim() : "";
