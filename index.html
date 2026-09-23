@@ -487,7 +487,11 @@
     return { id: r.id, round: r.round, homeId: r.home_id, awayId: r.away_id, homeGoals: r.home_goals, awayGoals: r.away_goals, shootoutWinnerId: r.shootout_winner_id, played: r.played };
   }
 
+  // Se incrementa con cada edición local; una recarga que empezó antes de una
+  // edición se descarta para no pisar cambios que todavía no se guardan.
+  let editGen = 0;
   async function loadSeasonData() {
+    const gen = editGen;
     const { data: seasons, error: e1 } = await sb.from("seasons").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(1);
     if (e1) { showToast("No se pudo cargar la temporada."); state = null; return; }
     if (!seasons || !seasons.length) { state = null; return; }
@@ -533,30 +537,42 @@
       };
     });
 
+    if (gen !== editGen) return;
     state = { season, players: players || [], jornadas };
   }
 
+  function newId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+  // Asigna id a los partidos nuevos para que se conserve entre guardados
+  // (así las casillas del marcador siguen apuntando al mismo partido).
+  function ensureId(m) { if (!m.id) m.id = newId(); return m.id; }
+
   function flattenJornadaForPersist(jornada) {
     const rows = jornada.matches.map(m => ({
-      jornada_id: jornada.id, stage: "group", round: m.round,
+      id: ensureId(m), jornada_id: jornada.id, stage: "group", round: m.round,
       home_id: m.homeId, away_id: m.awayId, home_goals: m.homeGoals, away_goals: m.awayGoals,
       shootout_winner_id: m.shootoutWinnerId, played: m.played
     }));
     if (jornada.playoff) {
       jornada.playoff.repechaje.forEach(m => rows.push({
-        jornada_id: jornada.id, stage: "repechaje", round: null,
+        id: ensureId(m), jornada_id: jornada.id, stage: "repechaje", round: null,
         home_id: m.homeId, away_id: m.awayId, home_goals: m.homeGoals, away_goals: m.awayGoals,
         shootout_winner_id: m.shootoutWinnerId, played: m.played
       }));
       jornada.playoff.semis.forEach(m => rows.push({
-        jornada_id: jornada.id, stage: "semifinal", round: null,
+        id: ensureId(m), jornada_id: jornada.id, stage: "semifinal", round: null,
         home_id: m.homeId, away_id: m.awayId, home_goals: m.homeGoals, away_goals: m.awayGoals,
         shootout_winner_id: m.shootoutWinnerId, played: m.played
       }));
       if (jornada.playoff.final) {
         const f = jornada.playoff.final;
         rows.push({
-          jornada_id: jornada.id, stage: "final", round: null,
+          id: ensureId(f), jornada_id: jornada.id, stage: "final", round: null,
           home_id: f.homeId, away_id: f.awayId, home_goals: f.homeGoals, away_goals: f.awayGoals,
           shootout_winner_id: f.shootoutWinnerId, played: f.played
         });
@@ -565,7 +581,23 @@
     return rows;
   }
 
-  async function persistJornada(jornada) {
+  // Los guardados se ejecutan uno tras otro para que dos cambios rápidos
+  // no intercalen sus DELETE/INSERT.
+  // Solo el último guardado de la fila recarga y redibuja.
+  let saveChain = Promise.resolve();
+  // Cada guardado escribe la Jornada completa, así que si hay varios en fila
+  // para la misma Jornada solo se ejecuta el más reciente.
+  let pendingSaves = 0;
+  const latestSave = {};
+  function persistJornada(jornada) {
+    const token = ++editGen;
+    latestSave[jornada.id] = token;
+    pendingSaves++;
+    saveChain = saveChain.then(() => persistJornadaNow(jornada, token));
+    return saveChain;
+  }
+  async function persistJornadaNow(jornada, token) {
+    if (latestSave[jornada.id] !== token) { pendingSaves--; return; }
     try {
       await sb.from("matches").delete().eq("jornada_id", jornada.id);
       const rows = flattenJornadaForPersist(jornada);
@@ -576,6 +608,8 @@
     } catch (e) {
       showToast("No se pudo guardar el cambio. Intenta de nuevo.");
     }
+    pendingSaves--;
+    if (pendingSaves > 0) return;
     await loadSeasonData();
     render();
   }
@@ -744,7 +778,10 @@
   let realtimeTimer = null;
   function scheduleReload() {
     clearTimeout(realtimeTimer);
-    realtimeTimer = setTimeout(() => { loadSeasonData().then(render); }, 350);
+    realtimeTimer = setTimeout(() => {
+      if (pendingSaves > 0) return; // el guardado en curso recarga al terminar
+      loadSeasonData().then(render);
+    }, 350);
   }
   function subscribeRealtime() {
     sb.channel("torneo-fc27-changes")
@@ -1187,7 +1224,30 @@
   }
 
   /* ============================== root render + delegation ============================== */
+  // Guarda lo que el usuario está escribiendo en los marcadores (y el foco)
+  // para que un redibujado no borre un valor que aún no se ha guardado.
+  function captureScoreInputs() {
+    const key = el => el.dataset.match + ":" + el.dataset.side;
+    const dirty = {};
+    $all("input.score-box").forEach(el => { if (el.value !== el.defaultValue) dirty[key(el)] = el.value; });
+    const a = document.activeElement;
+    const focusKey = a && a.classList && a.classList.contains("score-box") ? key(a) : null;
+    return { dirty, focusKey };
+  }
+  function restoreScoreInputs({ dirty, focusKey }) {
+    $all("input.score-box").forEach(el => {
+      const k = el.dataset.match + ":" + el.dataset.side;
+      if (k in dirty) el.value = dirty[k];
+      if (k === focusKey) el.focus();
+    });
+  }
+
   function render() {
+    const kept = captureScoreInputs();
+    renderInner();
+    restoreScoreInputs(kept);
+  }
+  function renderInner() {
     if (loading) {
       $("#app").innerHTML = `<div class="loading-screen">Cargando torneo…</div>`;
       return;
@@ -1249,12 +1309,23 @@
     }
   });
 
-  document.addEventListener("change", (e) => {
-    const el = e.target.closest("[data-action]");
-    if (!el) return;
+  function submitGoal(el) {
+    el.dataset.sent = el.value;
     const action = el.dataset.action;
     if (action === "group-goal") setGroupGoal(el.dataset.j, el.dataset.match, el.dataset.side, el.value);
     else if (action === "ko-goal") setKOGoal(el.dataset.j, el.dataset.match, el.dataset.side, el.value);
+  }
+  document.addEventListener("change", (e) => {
+    const el = e.target.closest("[data-action]");
+    if (!el) return;
+    if (el.dataset.action === "group-goal" || el.dataset.action === "ko-goal") submitGoal(el);
+  });
+  // Si la casilla se redibujó mientras se escribía, el navegador no dispara
+  // "change" al salir; se guarda aquí el valor pendiente.
+  document.addEventListener("focusout", (e) => {
+    const el = e.target;
+    if (!el.classList || !el.classList.contains("score-box")) return;
+    if (el.value !== el.defaultValue && el.dataset.sent !== el.value) submitGoal(el);
   });
 
   /* ============================== init ============================== */
