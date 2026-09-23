@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Solo el carácter ϝ (FIFA Coins): Barlow/Inter no lo incluyen y cada sistema lo dibujaba distinto -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@600;800&text=%CF%9D&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -239,6 +241,7 @@
   }
   .topbar-inner.wide, .wrap.wide { max-width: 1400px; }
   .muted { color: var(--text-muted); }
+  .fc-sym { font-family: 'Noto Sans', sans-serif; text-transform: none; }
   .neg { color: var(--red); }
   .pos { color: var(--accent); }
   .fc-text { color: var(--blue); }
@@ -270,9 +273,12 @@
   .market-controls select.text-input { flex: 0 0 auto; }
   .check-inline { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); white-space: nowrap; }
   .pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0; font-size: 14px; }
-  .pager-btns { display: flex; align-items: center; gap: 10px; }
+  .pager-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .pager-num { min-width: 64px; text-align: center; }
+  @media (max-width: 640px) { .pager .btn-secondary { padding: 7px 12px; } .pg-lbl { display: none; } }
   .pager .btn-secondary:disabled { opacity: .4; cursor: not-allowed; }
-  .market-scroll { max-height: 70vh; overflow: auto; }
+  .market-section { margin-top: -4px; }
+  .market-scroll { max-height: calc(100vh - 90px); min-height: 420px; overflow: auto; }
   table.market-table thead th { position: sticky; top: 0; z-index: 2; }
   table.market-table td.name-cell { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 150px; white-space: normal; }
   table.market-table thead th:nth-child(2) { position: sticky; left: 0; z-index: 3; }
@@ -1406,7 +1412,10 @@
   function cardPrice(rat, wf, sm) {
     return rat + (WF_BONUS[wf] || 0) + (SM_BONUS[sm] || 0);
   }
-  function fcFormatted(n) { return n < 0 ? "−ϝ" + (-n) : "ϝ" + n; }
+  // HTML (ϝ con su fuente) y texto plano (para avisos y confirmaciones del navegador).
+  const FC_SYM = '<span class="fc-sym">ϝ</span>';
+  function fcFormatted(n) { return (n < 0 ? "−" : "") + FC_SYM + Math.abs(n); }
+  function fcPlain(n) { return (n < 0 ? "−ϝ" : "ϝ") + Math.abs(n); }
 
   // Saldo de cada participante: presupuesto inicial + FC ganadas - compras.
   function teamFinances() {
@@ -1495,7 +1504,7 @@
     let html = `<div class="section">
       <div class="section-head"><h2>Recompensas</h2><span class="sub">Puntos por Jornada</span></div>
       ${rewardsLegendHtml()}
-      <p class="qual-note">Camp. = Campeón · Subc. = Subcampeón. FC (ϝ): FIFA Coins según el lugar en la Tabla General al final de la Jornada y la distancia en puntos con el 1° (ver tabla en ℹ️ Reglas).</p>`;
+      <p class="qual-note">Camp. = Campeón · Subc. = Subcampeón. FC (${FC_SYM}): FIFA Coins según el lugar en la Tabla General al final de la Jornada y la distancia en puntos con el 1° (ver tabla en ℹ️ Reglas).</p>`;
     if (!done.length) {
       html += `<div class="card empty-note">Todavía no hay Jornadas con la fase de grupos terminada. Los puntos aparecen aquí en cuanto se capturen todos los partidos de una Jornada.</div>`;
     }
@@ -1505,7 +1514,7 @@
         <div class="table-scroll">
           <table class="standings compact">
             <thead><tr>
-              <th style="text-align:left">Jugador</th><th>Lugar</th><th>Pts</th><th title="Campeón">Camp.</th><th title="Subcampeón">Subc.</th><th>Total</th><th>FC (<span style="text-transform:none">ϝ</span>)</th>
+              <th style="text-align:left">Jugador</th><th>Lugar</th><th>Pts</th><th title="Campeón">Camp.</th><th title="Subcampeón">Subc.</th><th>Total</th><th>FC (${FC_SYM})</th>
             </tr></thead>
             <tbody>${r.rows.map(row => `
               <tr class="${row.place == null ? "absent" : ""}">
@@ -1515,7 +1524,7 @@
                 <td>${row.champion ? `🏆+${row.champion}` : ""}</td>
                 <td>${row.runnerUp ? `🥈+${row.runnerUp}` : ""}</td>
                 <td class="pts-cell">${row.total}</td>
-                <td class="fc-cell">${(fc => fc == null ? "–" : "ϝ" + fc)(fcOf(j, r, row))}</td>
+                <td class="fc-cell">${(fc => fc == null ? "–" : fcFormatted(fc))(fcOf(j, r, row))}</td>
               </tr>`).join("")}
             </tbody>
           </table>
@@ -1583,13 +1592,13 @@
         <h4>Recompensas y Tabla General</h4>
         <p>Al terminar la fase de grupos de cada Jornada se reparten puntos según el lugar: 1° = 11, 2° = 10, 3° = 9, 4° = 8, 5° = 7, 6° = 6, 7° = 5. Quien falte a la Jornada recibe 2 puntos. Bono de la Final: <strong>Campeón +2</strong>, <strong>Subcampeón +1</strong>.</p>
         <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
-        <h4>FIFA Coins (ϝ)</h4>
+        <h4>FIFA Coins (${FC_SYM})</h4>
         <p>Al final de cada Jornada (ya con la Final), cada jugador recibe FIFA Coins según su lugar en la Tabla General y su distancia en puntos con el 1° lugar. Quien faltó a la Jornada usa la fila "Faltó".</p>
         <div class="table-scroll"><table class="fc-table">
           <thead><tr><th>Lugar</th>${FC_DIST_LABELS.map(l => `<th>${l}</th>`).join("")}</tr></thead>
           <tbody>
-            ${FC_TABLE.map((row, i) => `<tr><td><strong>${i + 1}°</strong></td>${row.map(v => `<td>ϝ${v}</td>`).join("")}</tr>`).join("")}
-            <tr><td><strong>Faltó</strong></td>${FC_ABSENT.map(v => `<td>ϝ${v}</td>`).join("")}</tr>
+            ${FC_TABLE.map((row, i) => `<tr><td><strong>${i + 1}°</strong></td>${row.map(v => `<td>${fcFormatted(v)}</td>`).join("")}</tr>`).join("")}
+            <tr><td><strong>Faltó</strong></td>${FC_ABSENT.map(v => `<td>${fcFormatted(v)}</td>`).join("")}</tr>
           </tbody>
         </table></div>
         <h4>Equipos, Mercado y Draft</h4>
@@ -1785,9 +1794,11 @@
       <div class="pager">
         <span class="muted">${list.length.toLocaleString("es-MX")} jugadores</span>
         <span class="pager-btns">
-          <button class="btn-secondary" data-action="market-page" data-dir="-1" ${marketPage === 0 ? "disabled" : ""}>‹ Anterior</button>
-          <span>${marketPage + 1} / ${pages}</span>
-          <button class="btn-secondary" data-action="market-page" data-dir="1" ${marketPage >= pages - 1 ? "disabled" : ""}>Siguiente ›</button>
+          <button class="btn-secondary" title="Primera página" data-action="market-page-to" data-page="first" ${marketPage === 0 ? "disabled" : ""}>«<span class="pg-lbl"> Primera</span></button>
+          <button class="btn-secondary" data-action="market-page" data-dir="-1" ${marketPage === 0 ? "disabled" : ""}>‹<span class="pg-lbl"> Anterior</span></button>
+          <span class="pager-num">${marketPage + 1} / ${pages}</span>
+          <button class="btn-secondary" data-action="market-page" data-dir="1" ${marketPage >= pages - 1 ? "disabled" : ""}><span class="pg-lbl">Siguiente </span>›</button>
+          <button class="btn-secondary" title="Última página" data-action="market-page-to" data-page="last" ${marketPage >= pages - 1 ? "disabled" : ""}><span class="pg-lbl">Última </span>»</button>
         </span>
       </div>`;
     const dash = v => (v === null || v === undefined || v === "") ? "–" : escapeHtml(v);
@@ -1830,8 +1841,7 @@
         <div class="card empty-note">${marketError ? `No se pudo cargar el mercado. <button class="btn-secondary" data-action="retry-market">Reintentar</button>` : "Cargando mercado…"}</div></div>`;
     }
     return `
-      <div class="section">
-        <div class="section-head"><h2>Mercado</h2><span class="sub">Valor = RAT + bono WF (3★ +1 · 4★ +2 · 5★ +4) + bono SM (3★ +1 · 4★ +2 · 5★ +5)</span></div>
+      <div class="market-section">
         ${draftBannerHtml()}
         <div class="market-controls">
           <input class="text-input" id="market-search" type="search" placeholder="Buscar jugador por nombre…" value="${escapeHtml(marketQuery)}" autocomplete="off">
@@ -1841,6 +1851,7 @@
           </select>
           <label class="check-inline"><input type="checkbox" id="market-available" ${marketOnlyAvailable ? "checked" : ""}> Solo disponibles</label>
         </div>
+        <p class="qual-note" style="margin:0 0 4px;">Valor = RAT + bono WF (3★ +1 · 4★ +2 · 5★ +4) + bono SM (3★ +1 · 4★ +2 · 5★ +5)</p>
         <div id="market-results">${marketResultsHtml()}</div>
       </div>`;
   }
@@ -1904,14 +1915,14 @@
     if (error) showToast(error.code === "23505" ? "Ese jugador ya fue comprado."
       : /squad_full/.test(error.message || "") ? playerName(teamId) + " ya tiene " + SQUAD_SIZE + " jugadores."
       : "No se pudo registrar la compra.");
-    else showToast(m.name + " → " + playerName(teamId) + " (" + fcFormatted(m.price) + ")");
+    else showToast(m.name + " → " + playerName(teamId) + " (" + fcPlain(m.price) + ")");
     await loadSeasonData(); render();
   }
   async function undoPurchase(purchaseId) {
     if (!isAdmin) return;
     const pu = (state.purchases || []).find(x => x.id === purchaseId);
     if (!pu) return;
-    if (!confirm("¿Quitar a " + pu.card_name + " del equipo de " + playerName(pu.player_id) + "? Regresa al mercado y se reembolsan " + fcFormatted(pu.price) + ".")) return;
+    if (!confirm("¿Quitar a " + pu.card_name + " del equipo de " + playerName(pu.player_id) + "? Regresa al mercado y se reembolsan " + fcPlain(pu.price) + ".")) return;
     const { error } = await sb.from("team_purchases").delete().eq("id", purchaseId);
     if (error) showToast("No se pudo deshacer la compra.");
     await loadSeasonData(); render();
@@ -2010,6 +2021,7 @@
       case "close-nav": navOpen = false; render(); break;
       case "set-team-tab": teamsTab = el.dataset.team; render(); break;
       case "market-page": marketPage += parseInt(el.dataset.dir, 10); refreshMarketResults(); break;
+      case "market-page-to": marketPage = el.dataset.page === "first" ? 0 : Number.MAX_SAFE_INTEGER; refreshMarketResults(); break;
       case "retry-market": marketError = false; loadMarket(); render(); break;
       case "open-buy": buyCardId = parseInt(el.dataset.card, 10); buyTeamId = null; render(); break;
       case "buy-pick-team": buyTeamId = el.dataset.team; render(); break;
