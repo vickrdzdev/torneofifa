@@ -243,6 +243,7 @@
   .muted { color: var(--text-muted); }
   .test-banner { position: sticky; top: 0; z-index: 90; background: #d97706; color: #fff; text-align: center; font-weight: 700; font-size: 12.5px; letter-spacing: .04em; padding: 5px 10px; }
   body.test-env .topbar, body.test-env .sidenav { top: 27px; }
+  @media (max-width: 640px) { .test-banner .tb-long { display: none; } }
   body.test-env .sidenav { height: calc(100vh - 27px); }
   .fc-sym { width: .46em; height: .64em; vertical-align: -.04em; margin-right: .03em; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
   .neg { color: var(--red); }
@@ -266,6 +267,33 @@
     .stat-card .lbl { font-size: 10px; letter-spacing: .02em; }
     .stat-card .val { font-size: 26px; }
   }
+  .tx-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; font-size: 14px; }
+  .tx-controls select.text-input { flex: 0 0 auto; }
+  table.tx-table td { text-align: left; }
+  table.tx-table td.tx-amount, table.tx-table td.tx-bal, table.tx-table th:nth-child(4), table.tx-table th:nth-child(5) { text-align: right; }
+  table.tx-table td.tx-date { color: var(--text-muted); font-size: 12.5px; }
+  table.tx-table td.tx-detail { white-space: normal; min-width: 220px; }
+  table.tx-table td.tx-amount { font-weight: 800; }
+  table.tx-table td.tx-bal { color: var(--blue); font-weight: 700; }
+  @media (max-width: 640px) {
+    table.tx-table thead { display: none; }
+    table.tx-table, table.tx-table tbody { display: block; }
+    table.tx-table tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    table.tx-table td { border: none; padding: 0; white-space: normal; }
+    table.tx-table td.tx-date { grid-column: 1; grid-row: 1; align-self: center; }
+    table.tx-table td:nth-child(2) { grid-column: 2; grid-row: 1; text-align: right; }
+    table.tx-table td.tx-detail { grid-column: 1 / -1; min-width: 0; font-size: 14px; }
+    table.tx-table td.tx-amount { grid-column: 1; text-align: left; }
+    table.tx-table td.tx-bal { grid-column: 2; }
+    table.tx-table td.tx-bal::before { content: "Saldo "; font-weight: 500; color: var(--text-muted); font-size: 12px; }
+  }
+  .tx-pos { color: var(--accent); }
+  .tx-neg { color: var(--red); }
+  .tx-badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 2px 7px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  .tx-badge.tx-bonus { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+  .tx-badge.tx-buy { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+  .tx-badge.tx-sell { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+  .tx-badge.tx-pass { background: var(--surface-2); color: var(--text-muted); }
   .mini-btn { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 7px; font-weight: 700; font-size: 12.5px; padding: 5px 10px; }
   .mini-btn:hover { background: var(--accent-strong); }
   .mini-btn.danger { background: transparent; color: var(--red); border: 1px solid var(--line); padding: 3px 8px; }
@@ -392,7 +420,7 @@
     document.title = "[PRUEBAS] " + document.title;
     const banner = document.createElement("div");
     banner.className = "test-banner";
-    banner.textContent = "MODO PRUEBAS · base de datos de pruebas (no afecta el torneo real)";
+    banner.innerHTML = 'MODO PRUEBAS<span class="tb-long"> · base de datos de pruebas (no afecta el torneo real)</span>';
     document.body.insertBefore(banner, document.body.firstChild);
   }
 
@@ -434,6 +462,8 @@
   let marketPos = "";
   let marketOnlyAvailable = false;
   let marketPage = 0;
+  let txPlayer = "";          // filtro de Transacciones por persona
+  let txKind = "";            // filtro por tipo
   let buyCardId = null;       // modal de compra abierto
   let buyTeamId = null;
 
@@ -731,6 +761,7 @@
       }
       const jornada = {
         id: jr.id, jornada_number: jr.jornada_number, label: jr.label, playDate: jr.play_date || null,
+        updatedAt: allM.reduce((mx, m) => (m.created_at && m.created_at > mx ? m.created_at : mx), ""),
         activeIds, matches: groupM.map(mapMatchRow), playoff
       };
       if (playoff) Object.assign(playoff, playoffSeeding(jornada));
@@ -1740,7 +1771,8 @@
   const MODULES = [
     { id: "torneo", icon: "🏆", label: "Torneo" },
     { id: "equipos", icon: "👕", label: "Equipos" },
-    { id: "mercado", icon: "🛒", label: "Mercado" }
+    { id: "mercado", icon: "🛒", label: "Mercado" },
+    { id: "transacciones", icon: "🧾", label: "Transacciones" }
   ];
   function renderDashboard() {
     const app = $("#app");
@@ -1749,6 +1781,8 @@
       ({ tabs: topTabs, body } = renderTeamsModule());
     } else if (activeModule === "mercado") {
       body = renderMarketModule(); wide = true;
+    } else if (activeModule === "transacciones") {
+      body = renderTransactionsModule();
     } else {
       ({ tabs: topTabs, body } = renderTournamentModule());
     }
@@ -1883,6 +1917,86 @@
         </div>` : ""}
       </div>`;
     return { tabs, body };
+  }
+
+  /* ============================== módulo: transacciones ============================== */
+  const TX_KINDS = {
+    bono_inicial: { label: "Bono inicial", cls: "tx-bonus" },
+    bono_jornada: { label: "Bono de Jornada", cls: "tx-bonus" },
+    compra: { label: "Compra", cls: "tx-buy" },
+    venta: { label: "Venta", cls: "tx-sell" },
+    pase: { label: "Pase", cls: "tx-pass" }
+  };
+  function draftLabel(key) {
+    if (!key) return "Mercado abierto";
+    return key === "initial" ? "Draft inicial" : "Draft de la " + key;
+  }
+  // Todas las transacciones reconstruidas desde los datos, en orden cronológico,
+  // con el saldo de cada persona después de cada movimiento.
+  function buildTransactions() {
+    const tx = [];
+    const seasonAt = state.season.created_at || "";
+    state.players.forEach((p, i) => tx.push({ at: seasonAt, seq: i, playerId: p.id, kind: "bono_inicial", detail: "Presupuesto inicial de la temporada", amount: INITIAL_BUDGET }));
+    const snaps = generalTable().snapshots;
+    state.jornadas.forEach(j => {
+      const r = jornadaRewards(j);
+      if (!r || !r.finalDone) return;
+      r.rows.forEach(row => {
+        const fc = jornadaFifaCoins(j, r, snaps, row);
+        if (fc == null) return;
+        const place = snaps[j.label].rank[row.playerId] + "° en la Tabla General" + (row.place == null ? ", faltó" : "");
+        tx.push({ at: j.updatedAt || seasonAt, seq: 100 + j.jornada_number, playerId: row.playerId, kind: "bono_jornada", detail: "FIFA Coins de la " + j.label + " (" + place + ")", amount: fc });
+      });
+    });
+    (state.purchases || []).forEach(pu => {
+      tx.push({ at: pu.created_at, seq: 1000, playerId: pu.player_id, kind: "compra", detail: "compró a " + pu.card_name + " · " + draftLabel(pu.draft), amount: -pu.price });
+      if (pu.sold_at) tx.push({ at: pu.sold_at, seq: 1000, playerId: pu.player_id, kind: "venta", detail: "vendió a " + pu.card_name + " (97% de " + fcPlain(pu.price) + ")", amount: Number(pu.sale_amount) || 0 });
+    });
+    (state.passes || []).forEach(ps => tx.push({ at: ps.created_at, seq: 1000, playerId: ps.player_id, kind: "pase", detail: "pasó su turno · " + draftLabel(ps.draft), amount: 0 }));
+    tx.sort((a, b) => (a.at || "").localeCompare(b.at || "") || a.seq - b.seq);
+    const bal = {};
+    tx.forEach(t => { bal[t.playerId] = Math.round(((bal[t.playerId] || 0) + t.amount) * 100) / 100; t.balance = bal[t.playerId]; });
+    return tx;
+  }
+  function formatTxDate(iso) {
+    if (!iso) return "–";
+    return new Date(iso).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+  function renderTransactionsModule() {
+    const all = buildTransactions();
+    const list = all.filter(t => (!txPlayer || t.playerId === txPlayer) && (!txKind || t.kind === txKind)).reverse();
+    const amountHtml = a => a === 0 ? `<span class="muted">—</span>` : `<span class="${a > 0 ? "tx-pos" : "tx-neg"}">${a > 0 ? "+" : ""}${fcFormatted(a)}</span>`;
+    return `
+      <div class="section" style="margin-top:0;">
+        <div class="tx-controls">
+          <select class="text-input" id="tx-player">
+            <option value="">Todas las personas</option>
+            ${state.players.map(p => `<option value="${p.id}" ${txPlayer === p.id ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
+          </select>
+          <select class="text-input" id="tx-kind">
+            <option value="">Todos los tipos</option>
+            ${Object.entries(TX_KINDS).map(([k, v]) => `<option value="${k}" ${txKind === k ? "selected" : ""}>${v.label}</option>`).join("")}
+          </select>
+          <span class="muted">${list.length} movimiento${list.length === 1 ? "" : "s"} · más recientes primero</span>
+        </div>
+        ${list.length ? `
+        <div class="table-scroll">
+          <table class="standings compact tx-table">
+            <thead><tr>
+              <th style="text-align:left">Fecha</th><th style="text-align:left">Tipo</th><th style="text-align:left">Movimiento</th><th>Monto</th><th>Saldo</th>
+            </tr></thead>
+            <tbody>${list.map(t => `
+              <tr>
+                <td class="tx-date">${escapeHtml(formatTxDate(t.at))}</td>
+                <td><span class="tx-badge ${TX_KINDS[t.kind].cls}">${TX_KINDS[t.kind].label}</span></td>
+                <td class="tx-detail"><strong>${escapeHtml(playerName(t.playerId))}</strong> ${t.kind.startsWith("bono") ? "· " : ""}${escapeHtml(t.detail)}</td>
+                <td class="tx-amount">${amountHtml(t.amount)}</td>
+                <td class="tx-bal">${fcFormatted(t.balance)}</td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>` : `<div class="card empty-note">No hay movimientos con estos filtros.</div>`}
+      </div>`;
   }
 
   /* ============================== módulo: mercado ============================== */
@@ -2239,6 +2353,8 @@
   });
   document.addEventListener("change", (e) => {
     if (e.target.classList && e.target.classList.contains("jdate-input")) { setJornadaDate(e.target.dataset.j, e.target.value); return; }
+    if (e.target.id === "tx-player") { txPlayer = e.target.value; render(); return; }
+    if (e.target.id === "tx-kind") { txKind = e.target.value; render(); return; }
     if (e.target.id === "market-pos") { marketPos = e.target.value; marketPage = 0; refreshMarketResults(); return; }
     if (e.target.id === "market-available") { marketOnlyAvailable = e.target.checked; marketPage = 0; refreshMarketResults(); return; }
     const el = e.target.closest("[data-action]");
