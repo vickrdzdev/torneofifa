@@ -2012,17 +2012,22 @@
     const fin = teamFinances();
     const tabs = state.players.map(p => `<button class="tab-btn ${teamsTab === p.id ? "active" : ""}" data-action="set-team-tab" data-team="${p.id}">${escapeHtml(p.name)}</button>`).join("");
     const f = fin[teamsTab];
-    const squad = (state.purchases || []).filter(pu => pu.player_id === teamsTab && !pu.sold_at);
+    // Siempre de mayor a menor valor (empate: mayor RAT).
+    const squad = (state.purchases || []).filter(pu => pu.player_id === teamsTab && !pu.sold_at)
+      .sort((a, b) => b.price - a.price || b.rat - a.rat || a.card_name.localeCompare(b.card_name));
     const soldList = (state.purchases || []).filter(pu => pu.player_id === teamsTab && pu.sold_at).sort((a, b) => b.sold_at.localeCompare(a.sold_at));
     const canTrade = marketAllowsTrades(marketStatus());
-    const avg = key => squad.length ? (squad.reduce((a, pu) => a + pu[key], 0) / squad.length).toFixed(1) : "–";
+    // Promedios con los 11 mejores (los primeros 11 por valor).
+    const TOP_N = 11;
+    const top = squad.slice(0, TOP_N);
+    const avg = key => top.length ? (top.reduce((a, pu) => a + pu[key], 0) / top.length).toFixed(1) : "–";
     const body = `
       <div class="section">
         <div class="section-head team-head"><h2>${escapeHtml(playerName(teamsTab))}</h2><span class="sub">Jugadores: ${f.count}/${SQUAD_SIZE}</span></div>
         <div class="team-stats">
           <div class="stat-card card"><span class="lbl">Saldo</span><span class="val saldo ${f.balance < 0 ? "neg" : ""}">${fcFormatted(f.balance)}</span></div>
-          <div class="stat-card card"><span class="lbl">Nivel promedio (RAT)</span><span class="val">${avg("rat")}</span></div>
-          <div class="stat-card card"><span class="lbl">Valor promedio</span><span class="val">${avg("price")}</span></div>
+          <div class="stat-card card"><span class="lbl">Nivel promedio (RAT) · top ${TOP_N}</span><span class="val">${avg("rat")}</span></div>
+          <div class="stat-card card"><span class="lbl">Valor promedio · top ${TOP_N}</span><span class="val">${avg("price")}</span></div>
         </div>
         ${squad.length ? `
         <div class="table-scroll" style="margin-top:16px;">
