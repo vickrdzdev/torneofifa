@@ -1820,12 +1820,17 @@
     const pretty = j.playDate
       ? new Date(j.playDate + "T12:00:00Z").toLocaleDateString("es-MX", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : null;
-    const close = marketCloseAt(j.playDate);
+    // La J0 se juega con los equipos estándar del FIFA: no hay Mercado antes
+    // de ella, así que su fecha no define ningún cierre.
+    const isJ0 = j.jornada_number === 0;
+    const close = isJ0 ? null : marketCloseAt(j.playDate);
     const closeTxt = close ? ` · El Mercado cierra el ${escapeHtml(formatCloseAt(close))}` : "";
+    const note = isJ0 ? "Se juega con los equipos estándar del FIFA (sin Mercado)."
+      : closeTxt ? closeTxt.slice(3) : "Sin fecha: el Mercado no cierra antes de esta Jornada.";
     if (isAdmin) return `<div class="jdate-row">
         <label for="jdate-${j.id}">📅 Fecha de la ${j.label}:</label>
         <input type="date" class="text-input jdate-input" id="jdate-${j.id}" data-j="${j.id}" value="${j.playDate || ""}">
-        <span class="muted">${closeTxt ? closeTxt.slice(3) : "Sin fecha: el Mercado no cierra antes de esta Jornada."}</span>
+        <span class="muted">${note}</span>
       </div>`;
     return pretty ? `<div class="jdate-row"><span>📅 ${escapeHtml(pretty)}</span><span class="muted">${closeTxt}</span></div>` : "";
   }
