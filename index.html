@@ -880,14 +880,6 @@
     await persistJornada(j);
   }
 
-  async function resetJornada(jornadaId) {
-    if (!isAdmin) return;
-    if (!confirm("¿Reiniciar esta Jornada? Se borrarán los partidos y la Liguilla generados.")) return;
-    const j = state.jornadas.find(x => x.id === jornadaId);
-    j.matches = []; j.playoff = null;
-    await persistJornada(j);
-  }
-
   async function setGroupGoal(jornadaId, matchId, side, value) {
     if (!isAdmin) return;
     const j = state.jornadas.find(x => x.id === jornadaId);
@@ -1274,9 +1266,6 @@
             ${rounds[rk].map(m => matchCardHtml(m, j.id, false)).join("")}
           </div>
         `).join("")}
-        ${isAdmin ? `<div class="gen-btn-row">
-          <button class="btn-secondary" data-action="reset-jornada" data-j="${j.id}">↺ Reiniciar Jornada</button>
-        </div>` : ""}
       </div>
       <div class="section">
         <div class="section-head"><h2>Tabla de posiciones</h2></div>
@@ -2299,7 +2288,6 @@
       }
       case "toggle-attendance": toggleAttendance(el.dataset.j, el.dataset.p); break;
       case "generate-jornada": generateJornada(el.dataset.j); break;
-      case "reset-jornada": resetJornada(el.dataset.j); break;
       case "generate-liguilla": generateLiguilla(el.dataset.j); break;
       case "group-pk": setGroupShootout(el.dataset.j, el.dataset.match, el.dataset.winner); break;
       case "ko-pk": setKOShootout(el.dataset.j, el.dataset.match, el.dataset.winner); break;
