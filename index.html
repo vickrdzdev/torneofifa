@@ -361,6 +361,9 @@
   table.market-table td.name-cell { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 150px; white-space: normal; }
   table.market-table thead th:nth-child(2) { position: sticky; left: 0; z-index: 3; }
   table.market-table td.photo-cell { padding: 3px 4px 3px 10px; }
+  table.standings td.photo-cell { width: 1%; padding: 4px 4px 4px 10px; }
+  .player-photo { display: block; border-radius: 7px; object-fit: cover; background: var(--surface-2); }
+  .photo-ph { display: block; border-radius: 7px; background: var(--surface-2); }
   table.market-table td.photo-cell img { display: block; border-radius: 6px; object-fit: cover; background: var(--surface-2); }
   table.market-table a { color: var(--blue); text-decoration: none; font-weight: 600; }
   table.market-table tr.sold td { color: var(--text-muted); opacity: .75; }
@@ -2006,7 +2009,14 @@
   }
 
   /* ============================== módulo: equipos ============================== */
+  const PHOTO_BASE = "https://cdn3.futbin.com/content/fifa27/img/players/";
+  function playerPhotoHtml(cardId, size) {
+    const m = market && market.byId ? market.byId[cardId] : null;
+    if (!m || !m.photo) return `<span class="photo-ph" style="width:${size}px;height:${size}px"></span>`;
+    return `<img class="player-photo" src="${PHOTO_BASE}${escapeHtml(m.photo)}" alt="" width="${size}" height="${size}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`;
+  }
   function renderTeamsModule() {
+    loadMarket(); // para las fotos de los jugadores
     if (!teamsTab || !state.players.some(p => p.id === teamsTab)) teamsTab = state.players[0] && state.players[0].id;
     const fin = teamFinances();
     const tabs = state.players.map(p => `<button class="tab-btn ${teamsTab === p.id ? "active" : ""}" data-action="set-team-tab" data-team="${p.id}">${escapeHtml(p.name)}</button>`).join("");
@@ -2031,10 +2041,11 @@
         <div class="table-scroll" style="margin-top:16px;">
           <table class="standings compact">
             <thead><tr>
-              <th style="text-align:left">Jugador</th><th>POS</th><th>RAT</th><th>WF</th><th>SM</th><th>Valor</th>${isAdmin ? "<th></th>" : ""}
+              <th></th><th style="text-align:left">Jugador</th><th>POS</th><th>RAT</th><th>WF</th><th>SM</th><th>Valor</th>${isAdmin ? "<th></th>" : ""}
             </tr></thead>
             <tbody>${squad.map(pu => `
               <tr>
+                <td class="photo-cell">${playerPhotoHtml(pu.card_id, 38)}</td>
                 <td class="name-cell">${escapeHtml(pu.card_name)}</td>
                 <td>${escapeHtml(pu.pos || "")}</td>
                 <td>${pu.rat}</td>
@@ -2219,7 +2230,7 @@
               : locked ? `<span class="lock-badge" title="Se desbloquea al terminar la ${unlockLabel(m.rat)}">🔒 ${unlockLabel(m.rat)}</span>`
               : (isAdmin && canTrade ? `<button class="mini-btn" data-action="open-buy" data-card="${m.id}">Comprar</button>` : `<span class="muted">Disponible</span>`);
             return `<tr class="${pu ? "sold" : locked ? "locked" : ""}">
-              <td class="photo-cell"><img src="https://cdn3.futbin.com/content/fifa27/img/players/${escapeHtml(m.photo)}" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></td>
+              <td class="photo-cell"><img src="${PHOTO_BASE}${escapeHtml(m.photo)}" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></td>
               <td class="name-cell">${escapeHtml(m.name)}</td>
               <td class="fc-cell">${fcFormatted(m.price)}</td>
               <td>${status}</td>
