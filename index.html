@@ -248,6 +248,7 @@
   .muted { color: var(--text-muted); }
   .test-banner { position: sticky; top: 0; z-index: 90; background: #d97706; color: #fff; text-align: center; font-weight: 700; font-size: 12.5px; letter-spacing: .04em; padding: 5px 10px; }
   body.test-env .topbar, body.test-env .sidenav { top: 27px; }
+  body.test-env .mini-topbar { top: calc(41px + env(safe-area-inset-top, 0px)); }
   @media (max-width: 640px) { .test-banner .tb-long { display: none; } }
   body.test-env .sidenav { height: calc(100vh - 27px); }
   .fc-sym { width: .46em; height: .64em; vertical-align: -.04em; margin-right: .03em; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
@@ -1133,17 +1134,17 @@
           <div class="name-row" style="margin-bottom:22px;">
             <input class="text-input" id="season-name" type="text" placeholder="Torneo FC27" value="${escapeHtml(seasonName)}">
           </div>
-          <h2>¿Cuántos jugadores participan?</h2>
-          <p class="hint">Total de jugadores de la temporada. Si alguien falta algún mes, ajustas la asistencia por Jornada.</p>
+          <h2>¿Cuántos players participan?</h2>
+          <p class="hint">Total de players de la temporada. Si alguien falta algún mes, ajustas la asistencia por Jornada.</p>
           <div class="count-row">
-            ${opts.map(n => `<button class="count-btn ${n === chosen ? "active" : ""}" data-action="pick-count" data-n="${n}">${n}<span class="lbl">jugadores</span></button>`).join("")}
+            ${opts.map(n => `<button class="count-btn ${n === chosen ? "active" : ""}" data-action="pick-count" data-n="${n}">${n}<span class="lbl">players</span></button>`).join("")}
           </div>
           <h2>Nombres</h2>
           <div class="name-grid">
             ${Array.from({ length: chosen }, (_, i) => `
               <div class="name-row">
                 <span class="num">${i + 1}</span>
-                <input class="text-input" data-action="name-input" data-i="${i}" type="text" placeholder="Jugador ${i + 1}" value="${escapeHtml(names[i] || "")}">
+                <input class="text-input" data-action="name-input" data-i="${i}" type="text" placeholder="Player ${i + 1}" value="${escapeHtml(names[i] || "")}">
               </div>`).join("")}
           </div>
           <button class="btn-primary" data-action="create-tournament">Crear torneo →</button>
@@ -1242,7 +1243,7 @@
       <div class="table-scroll">
         <table class="standings">
           <thead><tr>
-            <th>#</th><th style="text-align:left">Jugador</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th>
+            <th>#</th><th style="text-align:left">Player</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th>
             <th>GF</th><th>GC</th><th>DG</th><th>LC</th><th>Pts</th>
           </tr></thead>
           <tbody>${rows}</tbody>
@@ -1269,7 +1270,7 @@
               ${escapeHtml(p.name)}
             </label>`).join("")}
         </div>
-        ${!enough && !locked ? '<p class="attend-warn">Selecciona al menos 4 jugadores.</p>' : ""}
+        ${!enough && !locked ? '<p class="attend-warn">Selecciona al menos 4 players.</p>' : ""}
         ${!locked ? `<button class="btn-primary" data-action="generate-jornada" data-j="${j.id}" ${enough ? "" : "disabled"} style="max-width:280px;">Generar calendario</button>` : ""}
       </div>
     `;
@@ -1384,7 +1385,7 @@
             </div>`).join("")}
         </div>
         <div class="leaderboard card">
-          <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;margin:0 0 6px;">Títulos por jugador</h2>
+          <h2 style="font-family:var(--font-display);font-weight:700;font-size:18px;margin:0 0 6px;">Títulos por player</h2>
           ${board.map((p, i) => `
             <div class="lb-row">
               <span class="rk">${i + 1}</span>
@@ -1660,7 +1661,7 @@
         <div class="table-scroll">
           <table class="standings compact">
             <thead><tr>
-              <th style="text-align:left">Jugador</th><th>Lugar</th><th>Pts</th><th title="Campeón">Camp.</th><th title="Subcampeón">Subc.</th><th>Total</th><th>FC (${FC_SYM})</th>
+              <th style="text-align:left">Player</th><th>Lugar</th><th>Pts</th><th title="Campeón">Camp.</th><th title="Subcampeón">Subc.</th><th>Total</th><th>FC (${FC_SYM})</th>
             </tr></thead>
             <tbody>${r.rows.map(row => `
               <tr class="${row.place == null ? "absent" : ""}">
@@ -1691,7 +1692,7 @@
     html += `<div class="table-scroll">
         <table class="standings compact">
           <thead><tr>
-            <th>#</th><th></th><th style="text-align:left">Jugador</th>
+            <th>#</th><th></th><th style="text-align:left">Player</th>
             ${g.labels.map(l => `<th>${l}</th>`).join("")}
             <th>Total</th>
           </tr></thead>
@@ -1706,7 +1707,7 @@
           </tbody>
         </table>
       </div>
-      <p class="qual-note">Las flechas indican el movimiento respecto a la Jornada anterior. En empate de puntos, quien venía abajo y alcanza a otro jugador se coloca arriba de él (en la J0, el empate lo define el lugar en su fase regular).</p>
+      <p class="qual-note">Las flechas indican el movimiento respecto a la Jornada anterior. En empate de puntos, quien venía abajo y alcanza a otro player se coloca arriba de él (en la J0, el empate lo define el lugar en su fase regular).</p>
       ${generalChartHtml(g)}
     </div>`;
     return html;
@@ -1760,7 +1761,7 @@
           <div class="gt-legend">${players.map(p => `<span class="gt-leg"><i style="background:${seriesVar(p.id)}"></i>${escapeHtml(p.name)}</span>`).join("")}</div>
         </div>
         <div class="gt-wrap" id="gt-wrap">
-          <svg class="gt-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lugar en la Tabla General de cada jugador después de cada Jornada">
+          <svg class="gt-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lugar en la Tabla General de cada player después de cada Jornada">
             ${ticks.map(t => `<line class="gt-grid" x1="${m.left}" x2="${m.left + iw}" y1="${y(t)}" y2="${y(t)}"/><text class="gt-ytick" x="${m.left - 8}" y="${y(t) + 4}">${t}°</text>`).join("")}
             ${allLabels.map((l, k) => `<text class="gt-xtick ${labels.includes(l) ? "" : "pending"}" x="${xAt(k)}" y="${H - 8}">${l}</text>`).join("")}
             <line class="gt-cross" id="gt-cross" x1="0" x2="0" y1="${m.top}" y2="${m.top + ih}" style="display:none"/>
@@ -1812,16 +1813,16 @@
           <li>Goles a favor <span style="opacity:.7">(criterio adicional por si el empate persiste)</span></li>
         </ol>
         <h4>Liguilla</h4>
-        <p><strong>Con 7 jugadores activos:</strong> pasan los mejores 6. 1° y 2° van directo a semifinales; 3° vs 6° y 4° vs 5° juegan un repechaje directo (con penales si hay empate). Las semifinales siempre enfrentan al mejor ubicado contra el peor ubicado disponible.</p>
-        <p><strong>Con 4, 5 o 6 jugadores activos:</strong> pasan los mejores 4, directo a semifinales: 1° vs 4° y 2° vs 3°.</p>
-        <p>En la Liguilla, el jugador mejor ubicado en la tabla siempre es local.</p>
+        <p><strong>Con 7 players activos:</strong> pasan los mejores 6. 1° y 2° van directo a semifinales; 3° vs 6° y 4° vs 5° juegan un repechaje directo (con penales si hay empate). Las semifinales siempre enfrentan al mejor ubicado contra el peor ubicado disponible.</p>
+        <p><strong>Con 4, 5 o 6 players activos:</strong> pasan los mejores 4, directo a semifinales: 1° vs 4° y 2° vs 3°.</p>
+        <p>En la Liguilla, el player mejor ubicado en la tabla siempre es local.</p>
         <h4>Localía</h4>
-        <p>El orden de los partidos se sortea en cada Jornada. La localía se reparte para que cada jugador sea local en la mitad de los partidos que ha jugado en la temporada, tomando en cuenta las Jornadas anteriores.</p>
+        <p>El orden de los partidos se sortea en cada Jornada. La localía se reparte para que cada player sea local en la mitad de los partidos que ha jugado en la temporada, tomando en cuenta las Jornadas anteriores.</p>
         <h4>Recompensas y Tabla General</h4>
         <p>Al terminar la fase de grupos de cada Jornada se reparten puntos según el lugar: 1° = 11, 2° = 10, 3° = 9, 4° = 8, 5° = 7, 6° = 6, 7° = 5. Quien falte a la Jornada recibe 2 puntos. Bono de la Final: <strong>Campeón +2</strong>, <strong>Subcampeón +1</strong>.</p>
-        <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro jugador se coloca arriba de él. En la J0, como no hay Jornada previa, el empate se define por el lugar en la fase regular de la J0 (antes de la Liguilla).</p>
+        <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro player se coloca arriba de él. En la J0, como no hay Jornada previa, el empate se define por el lugar en la fase regular de la J0 (antes de la Liguilla).</p>
         <h4>FIFA Coins (${FC_SYM})</h4>
-        <p>Al final de cada Jornada (ya con la Final), cada jugador recibe FIFA Coins según su lugar en la Tabla General y su distancia en puntos con el 1° lugar. Quien faltó a la Jornada usa la fila "Faltó".</p>
+        <p>Al final de cada Jornada (ya con la Final), cada player recibe FIFA Coins según su lugar en la Tabla General y su distancia en puntos con el 1° lugar. Quien faltó a la Jornada usa la fila "Faltó".</p>
         <div class="table-scroll"><table class="fc-table">
           <thead><tr><th>Lugar</th>${FC_DIST_LABELS.map(l => `<th>${l}</th>`).join("")}</tr></thead>
           <tbody>
@@ -1830,7 +1831,7 @@
           </tbody>
         </table></div>
         <h4>Equipos, Mercado y Draft</h4>
-        <p>Cada participante arma un equipo de <strong>${SQUAD_SIZE} jugadores</strong> (11 titulares + 3 de banca) comprándolos en el Mercado con sus FIFA Coins. Saldo = ${fcFormatted(INITIAL_BUDGET)} iniciales + FC ganadas en las Jornadas − compras.</p>
+        <p>Cada player arma un equipo de <strong>${SQUAD_SIZE} jugadores</strong> (11 titulares + 3 de banca) comprándolos en el Mercado con sus FIFA Coins. Saldo = ${fcFormatted(INITIAL_BUDGET)} iniciales + FC ganadas en las Jornadas − compras.</p>
         <p>Valor de un jugador = RAT + bono de pierna débil (WF 3★ +1, 4★ +2, 5★ +4) + bono de skills (SM 3★ +1, 4★ +2, 5★ +5).</p>
         <p><strong>Draft inicial:</strong> empieza al terminar la J0. Se compra uno a uno en formato snake: la primera ronda va del último al primer lugar de la Tabla General, la segunda del primero al último, y así sucesivamente. Un jugador comprado ya no está disponible. Solo el admin registra las compras.</p>
         <p><strong>Draft de la Jornada:</strong> al terminar cada Jornada de la J1 a la J10 hay un Draft de una sola vuelta snake (del último al primero y del primero al último de la Tabla General): cada quien tiene 2 turnos. En cualquier Draft (inicial o de Jornada) se puede pasar el turno; quien pase en el Draft inicial completa sus 14 jugadores después.</p>
@@ -2083,7 +2084,7 @@
       <div class="section" style="margin-top:0;">
         <div class="tx-controls">
           <select class="text-input" id="tx-player">
-            <option value="">Todas las personas</option>
+            <option value="">Todos los players</option>
             ${state.players.map(p => `<option value="${p.id}" ${txPlayer === p.id ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
           </select>
           <select class="text-input" id="tx-kind">
@@ -2398,7 +2399,7 @@
         const names = [];
         for (let i = 0; i < n; i++) {
           const v = (renderSetup._names && renderSetup._names[i]) ? renderSetup._names[i].trim() : "";
-          names.push(v || ("Jugador " + (i + 1)));
+          names.push(v || ("Player " + (i + 1)));
         }
         const seasonName = (renderSetup._seasonName || "").trim() || "Torneo FC27";
         loading = true; render();
