@@ -366,6 +366,9 @@
   table.market-table a { color: var(--blue); text-decoration: none; font-weight: 600; }
   table.market-table tr.sold td { color: var(--text-muted); opacity: .75; }
   table.market-table tr.sold td.name-cell { text-decoration: line-through; color: var(--red); }
+  table.market-table tr.locked td { color: var(--text-muted); }
+  table.market-table tr.locked td.photo-cell img { opacity: .5; }
+  .lock-badge { display: inline-block; font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
   .sold-badge { display: inline-block; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; font-size: 12px; font-weight: 700; color: var(--text); opacity: 1; }
   .team-pick { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; }
   .team-opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; color: var(--text); font-weight: 600; font-size: 15px; text-align: left; }
@@ -1598,6 +1601,34 @@
   //  draft    → Draft inicial (tras J0) o Draft de la Jornada (tras J1..J10)
   //  open     → cualquiera compra/vende, hasta el domingo previo a la siguiente Jornada
   //  closed   → desde ese domingo hasta que termina la Jornada, o fin de temporada
+  // Desbloqueo por RAT: tras la J0 se puede comprar hasta RAT 84; cada Jornada
+  // terminada sube el límite 1 punto (J1 → 85 … J7 → 91) y desde la J8 no hay
+  // límite. El límite vale para el Draft y el Mercado abierto que siguen a esa Jornada.
+  const RAT_UNLOCK_BASE = 84;
+  const RAT_UNLOCK_FREE_FROM = 8;
+  function lastFinishedIndex() {
+    let last = -1;
+    state.jornadas.forEach((j, i) => { const r = jornadaRewards(j); if (r && r.finalDone) last = i; });
+    return last;
+  }
+  function ratCap() {
+    const k = Math.max(0, lastFinishedIndex());
+    return k >= RAT_UNLOCK_FREE_FROM ? Infinity : RAT_UNLOCK_BASE + k;
+  }
+  // Jornada en la que se desbloquea un jugador según su RAT.
+  function unlockLabel(rat) {
+    const k = Math.min(RAT_UNLOCK_FREE_FROM, Math.max(0, rat - RAT_UNLOCK_BASE));
+    return "J" + k;
+  }
+  function unlockNote() {
+    const cap = ratCap();
+    if (cap === Infinity) return "Todos los jugadores están desbloqueados.";
+    const next = cap + 1;
+    const nextTxt = unlockLabel(next) === "J" + RAT_UNLOCK_FREE_FROM
+      ? "el resto se desbloquea al terminar la J" + RAT_UNLOCK_FREE_FROM
+      : "RAT " + next + " se desbloquea al terminar la " + unlockLabel(next);
+    return "Desbloqueados: RAT " + cap + " o menos; " + nextTxt + ".";
+  }
   function marketStatus() {
     let last = -1;
     state.jornadas.forEach((j, i) => { const r = jornadaRewards(j); if (r && r.finalDone) last = i; });
@@ -1836,6 +1867,7 @@
         <p><strong>Draft inicial:</strong> empieza al terminar la J0. Se compra uno a uno en formato snake: la primera ronda va del último al primer lugar de la Tabla General, la segunda del primero al último, y así sucesivamente. Un jugador comprado ya no está disponible. Solo el admin registra las compras.</p>
         <p><strong>Draft de la Jornada:</strong> al terminar cada Jornada de la J1 a la J10 hay un Draft de una sola vuelta snake (del último al primero y del primero al último de la Tabla General): cada quien tiene 2 turnos. En cualquier Draft (inicial o de Jornada) se puede pasar el turno; quien pase en el Draft inicial completa sus 14 jugadores después.</p>
         <p><strong>Mercado abierto:</strong> al terminar el Draft, cualquiera compra y vende en cualquier orden hasta el domingo a las 11:59 pm (hora del centro de México) previo a la fecha de la siguiente Jornada. Desde ese momento y hasta que termina la Jornada, el Mercado está cerrado.</p>
+        <p><strong>Desbloqueo por RAT:</strong> tras la J0 se pueden comprar jugadores de RAT 84 o menos. Al terminar cada Jornada se desbloquea el siguiente nivel: J1 → RAT 85, J2 → 86, J3 → 87, J4 → 88, J5 → 89, J6 → 90, J7 → 91 y desde la J8 todos los jugadores.</p>
         <p><strong>Ventas:</strong> al vender un jugador se recupera el 97% de lo que se pagó y el jugador regresa al Mercado. Se puede vender durante los Drafts y con el Mercado abierto.</p>
         <h4>Tus datos</h4>
         <p>Todo se guarda en una base de datos real y se sincroniza al instante entre todos los que tengan la app abierta. Solo el admin puede editar; el resto puede ver todo en vivo sin iniciar sesión.</p>
@@ -2125,10 +2157,11 @@
   function filteredMarket() {
     const q = normalizeText(marketQuery.trim());
     const sold = soldMap();
+    const cap = ratCap();
     return market.filter(m =>
       (!q || m.search.includes(q)) &&
       (!marketPos || m.pos === marketPos) &&
-      (!marketOnlyAvailable || !sold[m.id]));
+      (!marketOnlyAvailable || (!sold[m.id] && m.rat <= cap)));
   }
   function draftBannerHtml() {
     const st = marketStatus();
@@ -2168,6 +2201,7 @@
     const slice = list.slice(marketPage * MARKET_PAGE_SIZE, (marketPage + 1) * MARKET_PAGE_SIZE);
     const sold = soldMap();
     const canTrade = marketAllowsTrades(marketStatus());
+    const cap = ratCap();
     const pager = `
       <div class="pager">
         <span class="muted">${list.length.toLocaleString("es-MX")} jugadores</span>
@@ -2191,10 +2225,12 @@
           </tr></thead>
           <tbody>${slice.map(m => {
             const pu = sold[m.id];
+            const locked = !pu && m.rat > cap;
             const status = pu
               ? `<span class="sold-badge">👕 ${escapeHtml(playerName(pu.player_id))}</span>`
+              : locked ? `<span class="lock-badge" title="Se desbloquea al terminar la ${unlockLabel(m.rat)}">🔒 ${unlockLabel(m.rat)}</span>`
               : (isAdmin && canTrade ? `<button class="mini-btn" data-action="open-buy" data-card="${m.id}">Comprar</button>` : `<span class="muted">Disponible</span>`);
-            return `<tr class="${pu ? "sold" : ""}">
+            return `<tr class="${pu ? "sold" : locked ? "locked" : ""}">
               <td class="photo-cell"><img src="https://cdn3.futbin.com/content/fifa27/img/players/${escapeHtml(m.photo)}" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"></td>
               <td class="name-cell">${escapeHtml(m.name)}</td>
               <td class="fc-cell">${fcFormatted(m.price)}</td>
@@ -2229,6 +2265,7 @@
           </select>
           <label class="check-inline"><input type="checkbox" id="market-available" ${marketOnlyAvailable ? "checked" : ""}> Solo disponibles</label>
         </div>
+        <p class="qual-note" style="margin:0 0 4px;">🔓 ${escapeHtml(unlockNote())}</p>
         <p class="qual-note" style="margin:0 0 4px;">Valor = RAT + WF (3★ +1 · 4★ +2 · 5★ +4) + SM (3★ +1 · 4★ +2 · 5★ +5)</p>
         <div id="market-results">${marketResultsHtml()}</div>
       </div>`;
@@ -2288,6 +2325,7 @@
     if (soldMap()[m.id]) { showToast("Ese jugador ya fue comprado."); buyCardId = null; render(); return; }
     const st = marketStatus();
     if (!marketAllowsTrades(st)) { showToast("El Mercado está cerrado."); buyCardId = null; render(); return; }
+    if (m.rat > ratCap()) { showToast(m.name + " se desbloquea al terminar la " + unlockLabel(m.rat) + "."); buyCardId = null; render(); return; }
     const teamId = buyTeamId;
     buyCardId = null; buyTeamId = null;
     const { error } = await sb.from("team_purchases").insert({
