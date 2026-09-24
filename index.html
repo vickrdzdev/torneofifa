@@ -1118,7 +1118,7 @@
     const app = $("#app");
     const chosen = renderSetup._count || 7;
     const names = renderSetup._names || [];
-    const seasonName = renderSetup._seasonName != null ? renderSetup._seasonName : "FC27";
+    const seasonName = renderSetup._seasonName != null ? renderSetup._seasonName : "Torneo FC27";
     const opts = [7, 6, 5, 4];
     const locked = !isAdmin;
     const cardHtml = locked ? `
@@ -1131,7 +1131,7 @@
         <div class="setup-card" style="margin-top:-26px;">
           <h2>Nombre de la temporada</h2>
           <div class="name-row" style="margin-bottom:22px;">
-            <input class="text-input" id="season-name" type="text" placeholder="FC27" value="${escapeHtml(seasonName)}">
+            <input class="text-input" id="season-name" type="text" placeholder="Torneo FC27" value="${escapeHtml(seasonName)}">
           </div>
           <h2>¿Cuántos jugadores participan?</h2>
           <p class="hint">Total de jugadores de la temporada. Si alguien falta algún mes, ajustas la asistencia por Jornada.</p>
@@ -2400,7 +2400,7 @@
           const v = (renderSetup._names && renderSetup._names[i]) ? renderSetup._names[i].trim() : "";
           names.push(v || ("Jugador " + (i + 1)));
         }
-        const seasonName = (renderSetup._seasonName || "").trim() || "FC27";
+        const seasonName = (renderSetup._seasonName || "").trim() || "Torneo FC27";
         loading = true; render();
         createSeason(seasonName, names).then(() => { loading = false; render(); });
         break;
