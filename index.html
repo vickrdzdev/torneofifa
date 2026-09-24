@@ -1709,11 +1709,6 @@
     const i = state.players.findIndex(p => p.id === playerId);
     return "var(--series-" + ((i % 8) + 1) + ")";
   }
-  function niceMax(v) {
-    if (v <= 10) return 10;
-    const step = v <= 50 ? 10 : v <= 120 ? 20 : v <= 250 ? 50 : 100;
-    return Math.ceil(v / step) * step;
-  }
   function chartWidth() {
     const vw = window.innerWidth || 1024;
     // Ancho útil dentro de la tarjeta (contenido del módulo menos el relleno de la tarjeta).
@@ -1723,17 +1718,16 @@
   function generalChartHtml(g) {
     const labels = g.labels;
     const players = state.players;
-    const cum = players.map(p => ({ id: p.id, pts: labels.map(l => g.snapshots[l].total[p.id] || 0) }));
+    // Lugar en la Tabla General tras cada Jornada: 1° arriba, último junto al eje X.
+    const N = Math.max(2, players.length);
+    const cum = players.map(p => ({ id: p.id, pts: labels.map(l => g.snapshots[l].rank[p.id] || N) }));
     const W = chartWidth(), H = W < 560 ? 280 : 340;
     const narrow = W < 560;
     const m = { top: 14, right: narrow ? 66 : 96, bottom: 30, left: 36 };
     const iw = W - m.left - m.right, ih = H - m.top - m.bottom;
-    const maxV = niceMax(Math.max(1, ...cum.flatMap(c => c.pts)));
     const x = i => m.left + (labels.length === 1 ? iw / 2 : (iw * i) / (labels.length - 1));
-    const y = v => m.top + ih - (ih * v) / maxV;
-    const ticks = [];
-    const tStep = maxV / 5;
-    for (let t = 0; t <= maxV + 0.001; t += tStep) ticks.push(Math.round(t));
+    const y = rank => m.top + (ih * (rank - 1)) / (N - 1);
+    const ticks = Array.from({ length: N }, (_, i) => i + 1);
     // Etiquetas al final de cada línea, separadas para que no se encimen.
     const lastIdx = labels.length - 1;
     const ends = cum.map(c => ({ id: c.id, v: c.pts[lastIdx], y: y(c.pts[lastIdx]) })).sort((a, b) => a.y - b.y);
@@ -1747,18 +1741,18 @@
     return `
       <div class="gt-chart card">
         <div class="gt-chart-head">
-          <h3>Evolución de puntos</h3>
+          <h3>Evolución de posiciones</h3>
           <div class="gt-legend">${players.map(p => `<span class="gt-leg"><i style="background:${seriesVar(p.id)}"></i>${escapeHtml(p.name)}</span>`).join("")}</div>
         </div>
         <div class="gt-wrap" id="gt-wrap">
-          <svg class="gt-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Puntos acumulados por jugador en cada Jornada">
-            ${ticks.map(t => `<line class="gt-grid" x1="${m.left}" x2="${m.left + iw}" y1="${y(t)}" y2="${y(t)}"/><text class="gt-ytick" x="${m.left - 8}" y="${y(t) + 4}">${t}</text>`).join("")}
+          <svg class="gt-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lugar en la Tabla General de cada jugador después de cada Jornada">
+            ${ticks.map(t => `<line class="gt-grid" x1="${m.left}" x2="${m.left + iw}" y1="${y(t)}" y2="${y(t)}"/><text class="gt-ytick" x="${m.left - 8}" y="${y(t) + 4}">${t}°</text>`).join("")}
             ${labels.map((l, i) => `<text class="gt-xtick" x="${x(i)}" y="${H - 8}">${l}</text>`).join("")}
             <line class="gt-cross" id="gt-cross" x1="0" x2="0" y1="${m.top}" y2="${m.top + ih}" style="display:none"/>
             ${cum.map(c => `
               <polyline class="gt-line" points="${c.pts.map((v, i) => x(i) + "," + y(v)).join(" ")}" style="stroke:${seriesVar(c.id)}"/>
               ${c.pts.map((v, i) => `<circle class="gt-dot" cx="${x(i)}" cy="${y(v)}" r="4" style="fill:${seriesVar(c.id)}"/>`).join("")}`).join("")}
-            ${ends.map(e => `<text class="gt-end" x="${x(lastIdx) + 10}" y="${e.y + 4}"><tspan style="fill:${seriesVar(e.id)}">●</tspan> ${escapeHtml(shortName(playerName(e.id)))} <tspan class="gt-end-v">${e.v}</tspan></text>`).join("")}
+            ${ends.map(e => `<text class="gt-end" x="${x(lastIdx) + 10}" y="${e.y + 4}"><tspan style="fill:${seriesVar(e.id)}">●</tspan> ${escapeHtml(shortName(playerName(e.id)))} <tspan class="gt-end-v">${e.v}°</tspan></text>`).join("")}
             ${labels.map((l, i) => `<rect class="gt-hit" data-idx="${i}" x="${x(i) - colW / 2}" y="${m.top}" width="${colW}" height="${ih}"/>`).join("")}
           </svg>
           <div class="gt-tip" id="gt-tip" style="display:none"></div>
@@ -1774,7 +1768,7 @@
     cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.style.display = "";
     const rows = state.players.map(p => ({ id: p.id, v: g.snapshots[l].total[p.id] || 0, rank: g.snapshots[l].rank[p.id] })).sort((a, b) => a.rank - b.rank);
     tip.innerHTML = `<div class="gt-tip-h">Después de la ${l}</div>` + rows.map(r =>
-      `<div class="gt-tip-r"><i style="background:${seriesVar(r.id)}"></i><span>${r.rank}. ${escapeHtml(playerName(r.id))}</span><strong>${r.v}</strong></div>`).join("");
+      `<div class="gt-tip-r"><i style="background:${seriesVar(r.id)}"></i><span>${r.rank}° ${escapeHtml(playerName(r.id))}</span><strong>${r.v} pts</strong></div>`).join("");
     tip.style.display = "";
     const W = wrap.clientWidth, tw = tip.offsetWidth;
     tip.style.left = Math.max(0, Math.min(W - tw, cx + 12 > W - tw ? cx - tw - 12 : cx + 12)) + "px";
