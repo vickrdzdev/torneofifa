@@ -1167,7 +1167,7 @@
       <div class="wrap">${cardHtml}</div>
       ${helpModalHtml()}
       ${loginModalHtml()}
-      ${toastMessage ? `<div class="toast">${escapeHtml(toastMessage)}</div>` : ""}
+      ${toastMessage ? `<div class="toast">${escapeHtml(toastMessage).replace(/ϝ/g, FC_SYM)}</div>` : ""}
     `;
     if (!locked) {
       $all('[data-action="name-input"]', app).forEach(inp => {
@@ -1954,7 +1954,7 @@
       ${helpModalHtml()}
       ${loginModalHtml()}
       ${buyModalHtml()}
-      ${toastMessage ? `<div class="toast">${escapeHtml(toastMessage)}</div>` : ""}
+      ${toastMessage ? `<div class="toast">${escapeHtml(toastMessage).replace(/ϝ/g, FC_SYM)}</div>` : ""}
     `;
   }
   function jornadaDateHtml(j) {
@@ -2135,7 +2135,7 @@
               <tr>
                 <td class="tx-date">${escapeHtml(formatTxDate(t.at))}</td>
                 <td><span class="tx-badge ${TX_KINDS[t.kind].cls}">${TX_KINDS[t.kind].label}</span></td>
-                <td class="tx-detail"><strong>${escapeHtml(playerName(t.playerId))}</strong> ${t.kind.startsWith("bono") ? "· " : ""}${escapeHtml(t.detail)}</td>
+                <td class="tx-detail"><strong>${escapeHtml(playerName(t.playerId))}</strong> ${t.kind.startsWith("bono") ? "· " : ""}${escapeHtml(t.detail).replace(/ϝ/g, FC_SYM)}</td>
                 <td class="tx-amount">${amountHtml(t.amount)}</td>
                 <td class="tx-bal">${fcFormatted(t.balance)}</td>
               </tr>`).join("")}
