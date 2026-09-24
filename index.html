@@ -341,7 +341,6 @@
   .jdate-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; font-size: 14px; }
   .jdate-row label { font-weight: 600; }
   .jdate-input { flex: 0 0 auto; padding: 7px 10px; font-size: 14px; }
-  .sold-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin: 22px 0 8px; }
   td.actions-cell { white-space: nowrap; }
   .mini-btn.sell { background: var(--blue); color: #fff; margin-right: 4px; }
   .mini-btn.sell:disabled { opacity: .4; cursor: not-allowed; }
@@ -2015,7 +2014,6 @@
     // Siempre de mayor a menor valor (empate: mayor RAT).
     const squad = (state.purchases || []).filter(pu => pu.player_id === teamsTab && !pu.sold_at)
       .sort((a, b) => b.price - a.price || b.rat - a.rat || a.card_name.localeCompare(b.card_name));
-    const soldList = (state.purchases || []).filter(pu => pu.player_id === teamsTab && pu.sold_at).sort((a, b) => b.sold_at.localeCompare(a.sold_at));
     const canTrade = marketAllowsTrades(marketStatus());
     // Promedios con los 11 mejores (los primeros 11 por valor).
     const TOP_N = 11;
@@ -2051,21 +2049,6 @@
             </tbody>
           </table>
         </div>` : `<div class="card empty-note" style="margin-top:16px;">Todavía no ha comprado jugadores.</div>`}
-        ${soldList.length ? `
-        <h3 class="sold-title">Vendidos</h3>
-        <div class="table-scroll">
-          <table class="standings compact">
-            <thead><tr><th style="text-align:left">Jugador</th><th>POS</th><th>Pagó</th><th>Recibió (97%)</th></tr></thead>
-            <tbody>${soldList.map(pu => `
-              <tr class="absent">
-                <td class="name-cell">${escapeHtml(pu.card_name)}</td>
-                <td>${escapeHtml(pu.pos || "")}</td>
-                <td>${fcFormatted(pu.price)}</td>
-                <td class="fc-cell">${fcFormatted(Number(pu.sale_amount) || 0)}</td>
-              </tr>`).join("")}
-            </tbody>
-          </table>
-        </div>` : ""}
       </div>`;
     return { tabs, body };
   }
