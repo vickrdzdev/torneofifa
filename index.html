@@ -44,6 +44,11 @@
     --accent: #1f9c52; --accent-strong: #167a40; --accent-ink: #ffffff;
     --gold: #a8781f; --red: #c7402a; --blue: #2e77a6;
   }
+  :root { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948; }
+  }
+  :root[data-theme="light"] { --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948; }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -267,6 +272,29 @@
     .stat-card .lbl { font-size: 10px; letter-spacing: .02em; }
     .stat-card .val { font-size: 26px; }
   }
+  .gt-chart { margin-top: 18px; padding: 16px 16px 10px; }
+  .gt-chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 8px; }
+  .gt-chart-head h3 { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin: 0; }
+  .gt-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--text-muted); }
+  .gt-leg { display: inline-flex; align-items: center; gap: 5px; }
+  .gt-leg i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .gt-wrap { position: relative; overflow: hidden; margin-left: -16px; }
+  .gt-svg { display: block; max-width: none; }
+  .gt-grid { stroke: var(--line); stroke-width: 1; }
+  .gt-ytick { fill: var(--text-muted); font-size: 11px; text-anchor: end; font-family: var(--font-body); }
+  .gt-xtick { fill: var(--text-muted); font-size: 11.5px; text-anchor: middle; font-family: var(--font-body); font-weight: 600; }
+  .gt-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .gt-dot { stroke: var(--surface); stroke-width: 2; }
+  .gt-end { fill: var(--text); font-size: 12px; font-family: var(--font-body); font-weight: 600; }
+  .gt-end .gt-end-v { fill: var(--text-muted); font-weight: 500; }
+  .gt-cross { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .gt-hit { fill: transparent; cursor: crosshair; }
+  .gt-tip { position: absolute; top: 8px; z-index: 5; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18); padding: 8px 10px; font-size: 12.5px; min-width: 150px; }
+  .gt-tip-h { font-weight: 700; color: var(--text-muted); margin-bottom: 4px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .gt-tip-r { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
+  .gt-tip-r i { width: 10px; height: 3px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+  .gt-tip-r span { flex: 1; color: var(--text); }
+  .gt-tip-r strong { color: var(--text); }
   .tx-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; font-size: 14px; }
   .tx-controls select.text-input { flex: 0 0 auto; }
   table.tx-table td { text-align: left; }
@@ -1645,7 +1673,7 @@
   function renderGeneralTable() {
     const g = generalTable();
     let html = `<div class="section">
-      <div class="section-head"><h2>Tabla General</h2><span class="sub">Puntos de recompensa acumulados</span></div>`;
+      <div class="section-head"><h2>Tabla General</h2></div>`;
     if (!g.labels.length) {
       html += `<div class="card empty-note">La Tabla General se arma en cuanto termine la fase de grupos de la primera Jornada.</div></div>`;
       return html;
@@ -1670,9 +1698,91 @@
         </table>
       </div>
       <p class="qual-note">Las flechas indican el movimiento respecto a la Jornada anterior. En empate de puntos, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
-      ${rewardsLegendHtml()}
+      ${generalChartHtml(g)}
     </div>`;
     return html;
+  }
+
+  /* ---------- gráfica de evolución de la Tabla General ---------- */
+  // Color fijo por jugador (orden de registro), nunca por posición en la tabla.
+  function seriesVar(playerId) {
+    const i = state.players.findIndex(p => p.id === playerId);
+    return "var(--series-" + ((i % 8) + 1) + ")";
+  }
+  function niceMax(v) {
+    if (v <= 10) return 10;
+    const step = v <= 50 ? 10 : v <= 120 ? 20 : v <= 250 ? 50 : 100;
+    return Math.ceil(v / step) * step;
+  }
+  function chartWidth() {
+    const vw = window.innerWidth || 1024;
+    // Ancho útil dentro de la tarjeta (contenido del módulo menos el relleno de la tarjeta).
+    const content = vw >= 900 ? Math.min(920, vw - 200) - 36 : vw - 36;
+    return Math.max(280, Math.min(884, content) - 16);
+  }
+  function generalChartHtml(g) {
+    const labels = g.labels;
+    const players = state.players;
+    const cum = players.map(p => ({ id: p.id, pts: labels.map(l => g.snapshots[l].total[p.id] || 0) }));
+    const W = chartWidth(), H = W < 560 ? 280 : 340;
+    const narrow = W < 560;
+    const m = { top: 14, right: narrow ? 66 : 96, bottom: 30, left: 36 };
+    const iw = W - m.left - m.right, ih = H - m.top - m.bottom;
+    const maxV = niceMax(Math.max(1, ...cum.flatMap(c => c.pts)));
+    const x = i => m.left + (labels.length === 1 ? iw / 2 : (iw * i) / (labels.length - 1));
+    const y = v => m.top + ih - (ih * v) / maxV;
+    const ticks = [];
+    const tStep = maxV / 5;
+    for (let t = 0; t <= maxV + 0.001; t += tStep) ticks.push(Math.round(t));
+    // Etiquetas al final de cada línea, separadas para que no se encimen.
+    const lastIdx = labels.length - 1;
+    const ends = cum.map(c => ({ id: c.id, v: c.pts[lastIdx], y: y(c.pts[lastIdx]) })).sort((a, b) => a.y - b.y);
+    const gap = 14;
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < gap) ends[i].y = ends[i - 1].y + gap;
+    const overflow = ends.length ? ends[ends.length - 1].y - (m.top + ih) : 0;
+    if (overflow > 0) ends.forEach(e => e.y -= overflow);
+    for (let i = ends.length - 2; i >= 0; i--) if (ends[i + 1].y - ends[i].y < gap) ends[i].y = ends[i + 1].y - gap;
+    const colW = labels.length === 1 ? iw : iw / (labels.length - 1);
+    const shortName = n => narrow && n.length > 8 ? n.slice(0, 7) + "…" : n;
+    return `
+      <div class="gt-chart card">
+        <div class="gt-chart-head">
+          <h3>Evolución de puntos</h3>
+          <div class="gt-legend">${players.map(p => `<span class="gt-leg"><i style="background:${seriesVar(p.id)}"></i>${escapeHtml(p.name)}</span>`).join("")}</div>
+        </div>
+        <div class="gt-wrap" id="gt-wrap">
+          <svg class="gt-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Puntos acumulados por jugador en cada Jornada">
+            ${ticks.map(t => `<line class="gt-grid" x1="${m.left}" x2="${m.left + iw}" y1="${y(t)}" y2="${y(t)}"/><text class="gt-ytick" x="${m.left - 8}" y="${y(t) + 4}">${t}</text>`).join("")}
+            ${labels.map((l, i) => `<text class="gt-xtick" x="${x(i)}" y="${H - 8}">${l}</text>`).join("")}
+            <line class="gt-cross" id="gt-cross" x1="0" x2="0" y1="${m.top}" y2="${m.top + ih}" style="display:none"/>
+            ${cum.map(c => `
+              <polyline class="gt-line" points="${c.pts.map((v, i) => x(i) + "," + y(v)).join(" ")}" style="stroke:${seriesVar(c.id)}"/>
+              ${c.pts.map((v, i) => `<circle class="gt-dot" cx="${x(i)}" cy="${y(v)}" r="4" style="fill:${seriesVar(c.id)}"/>`).join("")}`).join("")}
+            ${ends.map(e => `<text class="gt-end" x="${x(lastIdx) + 10}" y="${e.y + 4}"><tspan style="fill:${seriesVar(e.id)}">●</tspan> ${escapeHtml(shortName(playerName(e.id)))} <tspan class="gt-end-v">${e.v}</tspan></text>`).join("")}
+            ${labels.map((l, i) => `<rect class="gt-hit" data-idx="${i}" x="${x(i) - colW / 2}" y="${m.top}" width="${colW}" height="${ih}"/>`).join("")}
+          </svg>
+          <div class="gt-tip" id="gt-tip" style="display:none"></div>
+        </div>
+      </div>`;
+  }
+  function showChartTip(idx) {
+    const g = generalTable();
+    const l = g.labels[idx];
+    const wrap = $("#gt-wrap"), tip = $("#gt-tip"), cross = $("#gt-cross"), hit = wrap && wrap.querySelector('.gt-hit[data-idx="' + idx + '"]');
+    if (!wrap || !tip || !hit) return;
+    const cx = parseFloat(hit.getAttribute("x")) + parseFloat(hit.getAttribute("width")) / 2;
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.style.display = "";
+    const rows = state.players.map(p => ({ id: p.id, v: g.snapshots[l].total[p.id] || 0, rank: g.snapshots[l].rank[p.id] })).sort((a, b) => a.rank - b.rank);
+    tip.innerHTML = `<div class="gt-tip-h">Después de la ${l}</div>` + rows.map(r =>
+      `<div class="gt-tip-r"><i style="background:${seriesVar(r.id)}"></i><span>${r.rank}. ${escapeHtml(playerName(r.id))}</span><strong>${r.v}</strong></div>`).join("");
+    tip.style.display = "";
+    const W = wrap.clientWidth, tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(W - tw, cx + 12 > W - tw ? cx - tw - 12 : cx + 12)) + "px";
+  }
+  function hideChartTip() {
+    const tip = $("#gt-tip"), cross = $("#gt-cross");
+    if (tip) tip.style.display = "none";
+    if (cross) cross.style.display = "none";
   }
 
   function helpModalHtml() {
@@ -2337,6 +2447,20 @@
     tabs.scrollLeft += e.deltaY;
     e.preventDefault();
   }, { passive: false });
+  document.addEventListener("mouseover", (e) => {
+    const hit = e.target.closest && e.target.closest(".gt-hit");
+    if (hit) showChartTip(parseInt(hit.dataset.idx, 10));
+    else if (!(e.target.closest && e.target.closest("#gt-tip"))) hideChartTip();
+  });
+  let chartResizeTimer = null, lastChartWidth = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(chartResizeTimer);
+    chartResizeTimer = setTimeout(() => {
+      if (!$("#gt-wrap")) return;
+      const w = chartWidth();
+      if (w !== lastChartWidth) { lastChartWidth = w; render(); }
+    }, 200);
+  });
   let marketSearchTimer = null;
   document.addEventListener("input", (e) => {
     if (e.target.id !== "market-search") return;
