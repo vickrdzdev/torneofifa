@@ -1456,7 +1456,7 @@
   }
   // Tabla General: acumulado Jornada tras Jornada. En empate, quien venía
   // abajo y alcanza a otro se coloca arriba de él; si ya estaban empatados,
-  // conservan su orden.
+  // conservan su orden. En la J0 el empate se define por el lugar en su fase regular.
   function generalTable() {
     let order = state.players.map(p => p.id);
     const total = {}, perJ = {};
@@ -1467,6 +1467,13 @@
     state.jornadas.forEach(j => {
       const r = jornadaRewards(j);
       if (!r) return;
+      // Primera Jornada contada (la J0): no hay tabla previa, así que el
+      // desempate es el lugar en la fase regular de esa Jornada (sin Liguilla).
+      if (!labels.length) {
+        const place = {}; r.rows.forEach(row => place[row.playerId] = row.place == null ? 99 : row.place);
+        const reg = {}; order.forEach((id, i) => reg[id] = i);
+        order = order.slice().sort((a, b) => (place[a] ?? 99) - (place[b] ?? 99) || reg[a] - reg[b]);
+      }
       labels.push(j.label);
       const before = Object.assign({}, total);
       const pos = {}; order.forEach((id, i) => pos[id] = i);
@@ -1699,7 +1706,7 @@
           </tbody>
         </table>
       </div>
-      <p class="qual-note">Las flechas indican el movimiento respecto a la Jornada anterior. En empate de puntos, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
+      <p class="qual-note">Las flechas indican el movimiento respecto a la Jornada anterior. En empate de puntos, quien venía abajo y alcanza a otro jugador se coloca arriba de él (en la J0, el empate lo define el lugar en su fase regular).</p>
       ${generalChartHtml(g)}
     </div>`;
     return html;
@@ -1812,7 +1819,7 @@
         <p>El orden de los partidos se sortea en cada Jornada. La localía se reparte para que cada jugador sea local en la mitad de los partidos que ha jugado en la temporada, tomando en cuenta las Jornadas anteriores.</p>
         <h4>Recompensas y Tabla General</h4>
         <p>Al terminar la fase de grupos de cada Jornada se reparten puntos según el lugar: 1° = 11, 2° = 10, 3° = 9, 4° = 8, 5° = 7, 6° = 6, 7° = 5. Quien falte a la Jornada recibe 2 puntos. Bono de la Final: <strong>Campeón +2</strong>, <strong>Subcampeón +1</strong>.</p>
-        <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro jugador se coloca arriba de él.</p>
+        <p>La Tabla General acumula esos puntos Jornada tras Jornada. En empate, quien venía abajo y alcanza a otro jugador se coloca arriba de él. En la J0, como no hay Jornada previa, el empate se define por el lugar en la fase regular de la J0 (antes de la Liguilla).</p>
         <h4>FIFA Coins (${FC_SYM})</h4>
         <p>Al final de cada Jornada (ya con la Final), cada jugador recibe FIFA Coins según su lugar en la Tabla General y su distancia en puntos con el 1° lugar. Quien faltó a la Jornada usa la fila "Faltó".</p>
         <div class="table-scroll"><table class="fc-table">
