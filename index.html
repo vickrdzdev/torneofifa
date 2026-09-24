@@ -1545,7 +1545,7 @@
     state.jornadas.forEach((j, i) => { const r = jornadaRewards(j); if (r && r.finalDone) last = i; });
     if (last < 0) return { phase: "waiting" };
     const initial = draftState("initial", state.jornadas[0].label, SQUAD_SIZE);
-    if (initial) return { phase: "draft", key: "initial", title: "Draft inicial", canPass: false, ...initial };
+    if (initial) return { phase: "draft", key: "initial", title: "Draft inicial", canPass: true, ...initial };
     const lastJ = state.jornadas[last];
     if (last >= 1 && last <= state.jornadas.length - 2) {
       const d = draftState(lastJ.label, lastJ.label, JORNADA_DRAFT_ROUNDS);
@@ -1694,7 +1694,7 @@
         <p>Cada participante arma un equipo de <strong>${SQUAD_SIZE} jugadores</strong> (11 titulares + 3 de banca) comprándolos en el Mercado con sus FIFA Coins. Saldo = ${fcFormatted(INITIAL_BUDGET)} iniciales + FC ganadas en las Jornadas − compras.</p>
         <p>Valor de un jugador = RAT + bono de pierna débil (WF 3★ +1, 4★ +2, 5★ +4) + bono de skills (SM 3★ +1, 4★ +2, 5★ +5).</p>
         <p><strong>Draft inicial:</strong> empieza al terminar la J0. Se compra uno a uno en formato snake: la primera ronda va del último al primer lugar de la Tabla General, la segunda del primero al último, y así sucesivamente. Un jugador comprado ya no está disponible. Solo el admin registra las compras.</p>
-        <p><strong>Draft de la Jornada:</strong> al terminar cada Jornada de la J1 a la J10 hay un Draft de una sola vuelta snake (del último al primero y del primero al último de la Tabla General): cada quien tiene 2 turnos y puede pasar.</p>
+        <p><strong>Draft de la Jornada:</strong> al terminar cada Jornada de la J1 a la J10 hay un Draft de una sola vuelta snake (del último al primero y del primero al último de la Tabla General): cada quien tiene 2 turnos. En cualquier Draft (inicial o de Jornada) se puede pasar el turno; quien pase en el Draft inicial completa sus 14 jugadores después.</p>
         <p><strong>Mercado abierto:</strong> al terminar el Draft, cualquiera compra y vende en cualquier orden hasta el domingo a las 11:59 pm (hora del centro de México) previo a la fecha de la siguiente Jornada. Desde ese momento y hasta que termina la Jornada, el Mercado está cerrado.</p>
         <p><strong>Ventas:</strong> al vender un jugador se recupera el 97% de lo que se pagó y el jugador regresa al Mercado. Se puede vender durante los Drafts y con el Mercado abierto.</p>
         <h4>Tus datos</h4>
