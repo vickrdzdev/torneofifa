@@ -63,13 +63,20 @@ Deno.serve(async (req) => {
   const { data: rows, error } = await sb.rpc("claim_due_notifications", { max_rows: 50 });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: CORS });
 
+  // En el orden en que se crearon (p. ej. primero la compra y después el cambio de turno),
+  // con una pausa corta entre avisos para que el celular los muestre en ese orden.
+  const due = ((rows || []) as (Row & { created_at: string })[])
+    .sort((x, y) => Date.parse(x.send_at) - Date.parse(y.send_at) || Date.parse(x.created_at) - Date.parse(y.created_at));
   const summary: string[] = [];
-  for (const row of (rows || []) as Row[]) {
+  let sentOne = false;
+  for (const row of due) {
     // Recordatorios que se quedaron muy atrás (p. ej. el servidor estuvo apagado) ya no se mandan.
     if (row.kind !== "plain" && Date.now() - Date.parse(row.send_at) > 6 * 3600 * 1000) {
       await sb.from("notifications").update({ result: "vencida" }).eq("id", row.id);
       continue;
     }
+    if (sentOne) await new Promise((r) => setTimeout(r, 1500));
+    sentOne = true;
     const subs = await subsFor(await recipients(row));
     const payload = JSON.stringify({ title: row.title, body: row.body, image: row.image, url: row.url || "./", tag: row.key });
     let ok = 0;
