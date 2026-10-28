@@ -3,12 +3,12 @@
 
 alter table public.jornadas add column if not exists location_url text;
 
--- Fecha límite para confirmar: miércoles previo a la Jornada, 11:59:59 pm (CDMX, UTC-6).
+-- Fecha límite para confirmar: miércoles previo a la Jornada, 11:59:59 pm (hora del centro de México).
 -- Si la Jornada cae en miércoles, es el miércoles anterior.
 create or replace function public.rsvp_deadline(d date)
- returns timestamptz language sql immutable set search_path to '' as $$
+ returns timestamptz language sql stable set search_path to '' as $$
   select ((d - (case when extract(dow from d)::int = 3 then 7 else ((extract(dow from d)::int - 3 + 7) % 7) end))::timestamp
-          + interval '23 hours 59 minutes 59 seconds') at time zone '-06:00'
+          + interval '23 hours 59 minutes 59 seconds') at time zone 'America/Mexico_City'
 $$;
 
 create table if not exists public.jornada_rsvps (
