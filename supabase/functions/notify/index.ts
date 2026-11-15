@@ -172,7 +172,8 @@ async function processDue(summary: string[], sec: Record<string, string>) {
       await sb.from("notifications").update({ result: "vencida" }).eq("id", row.id);
       continue;
     }
-    const subs = await subsFor(await recipients(row));
+    // "wa_only": solo va al grupo de WhatsApp, sin push (plan B del video de compra, función walkout).
+    const subs = row.kind === "wa_only" ? [] : await subsFor(await recipients(row));
     if (row.kind === "rsvp_summary" && row.jornada_id) row.body = await rsvpSummary(row.jornada_id);
     const payload = JSON.stringify({ title: (IS_TEST ? TEST_TAG : "") + row.title, body: row.body, image: row.image, url: row.url || "./", tag: row.key });
     const results = await Promise.all(subs.map(async (s) => {
