@@ -20,8 +20,10 @@ async function purchaseInfo(purchaseId: string) {
   const buyer = pl?.name || "Alguien";
   return {
     ...pu, buyer,
-    title: "💸 " + buyer + " compró a " + pu.card_name,
-    // Mercado abierto: solo quién compró a quién (el video trae lo demás). Fast Track: + quién sigue de turno.
+    // En el video no se dice a quién compró: la sorpresa está en el video. El plan B (foto) sí lo dice.
+    title: "💸 " + buyer + " hizo una compra",
+    titleFull: "💸 " + buyer + " compró a " + pu.card_name,
+    // Mercado abierto: solo el título. Fast Track: + quién sigue de turno.
     body: job?.note || "",
   };
 }
@@ -48,7 +50,7 @@ async function fallback(job: { id: string; purchase_id: string }, why: string) {
     if (p) photo = PHOTO_BASE + p;
   } catch (_) { /* sin foto: solo texto */ }
   await sb.from("notifications").upsert({
-    season_id: info.season_id, key: "buywa:" + info.id, kind: "wa_only", title: info.title, body: info.body,
+    season_id: info.season_id, key: "buywa:" + info.id, kind: "wa_only", title: info.titleFull, body: info.body,
     url: "./?m=transacciones", whatsapp: true, wa_photo: photo, send_at: new Date().toISOString(),
   }, { onConflict: "key", ignoreDuplicates: true });
   await setResult(job.id, "plan B: " + why);
