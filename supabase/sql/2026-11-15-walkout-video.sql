@@ -142,3 +142,14 @@ revoke execute on function public.notifications_skip_walkout() from public, anon
 drop trigger if exists notifications_skip_walkout on public.notifications;
 create trigger notifications_skip_walkout before insert on public.notifications
   for each row execute function public.notifications_skip_walkout();
+
+-- Diagnóstico: la app reporta cómo le fue a la animación en el celular (versión, imágenes que cargaron).
+alter table public.walkout_jobs add column if not exists app_diag text;
+create or replace function public.walkout_diag(p_purchase uuid, p_info text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  update walkout_jobs set app_diag = left(p_info, 600) where purchase_id = p_purchase;
+end $$;
+revoke execute on function public.walkout_diag(uuid, text) from public, anon;
+grant execute on function public.walkout_diag(uuid, text) to authenticated;
