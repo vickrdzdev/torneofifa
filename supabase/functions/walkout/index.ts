@@ -1,4 +1,4 @@
-// Video "walkout" de las compras del Mercado abierto (ver supabase/sql/2026-11-15-walkout-video.sql).
+// Video "walkout" de las compras del Mercado abierto y del Fast Track (ver supabase/sql/2026-11-15-walkout-video.sql).
 // La llama el workflow walkout.yml de GitHub Actions con ?job=<id>&token=<token>:
 //   GET            → datos de la compra para grabar el video
 //   POST video/mp4 → guarda el video y lo manda al grupo de WhatsApp
@@ -12,9 +12,8 @@ const SITE = IS_TEST ? "https://vickrdzdev.github.io/torneofifa-pruebas/" : "htt
 const PHOTO_BASE = "https://cdn3.futbin.com/content/fifa27/img/players/";  // igual que en index.html
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 
-const fcNumber = (n: number) => { const a = Math.abs(n); return Number.isInteger(Math.round(a * 100) / 100) ? String(Math.round(a)) : a.toFixed(2); };
-
 async function purchaseInfo(purchaseId: string) {
+  const { data: job } = await sb.from("walkout_jobs").select("note").eq("purchase_id", purchaseId).maybeSingle();
   const { data: pu } = await sb.from("team_purchases").select("id, season_id, player_id, card_id, card_name, pos, rat, wf, sm, price").eq("id", purchaseId).maybeSingle();
   if (!pu) return null;
   const { data: pl } = await sb.from("players").select("name").eq("id", pu.player_id).maybeSingle();
@@ -22,7 +21,8 @@ async function purchaseInfo(purchaseId: string) {
   return {
     ...pu, buyer,
     title: "💸 " + buyer + " compró a " + pu.card_name,
-    body: pu.pos + " · RAT " + pu.rat + " · ϝ" + fcNumber(pu.price) + " · Mercado abierto",
+    // Mercado abierto: solo quién compró a quién (el video trae lo demás). Fast Track: + quién sigue de turno.
+    body: job?.note || "",
   };
 }
 
@@ -48,7 +48,7 @@ async function fallback(job: { id: string; purchase_id: string }, why: string) {
     if (p) photo = PHOTO_BASE + p;
   } catch (_) { /* sin foto: solo texto */ }
   await sb.from("notifications").upsert({
-    season_id: info.season_id, key: "buy:" + info.id, kind: "wa_only", title: info.title, body: info.body,
+    season_id: info.season_id, key: "buywa:" + info.id, kind: "wa_only", title: info.title, body: info.body,
     url: "./?m=transacciones", whatsapp: true, wa_photo: photo, send_at: new Date().toISOString(),
   }, { onConflict: "key", ignoreDuplicates: true });
   await setResult(job.id, "plan B: " + why);
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     if (up.error) throw new Error("storage " + up.error.message);
     const { data: signed } = await sb.storage.from("whatsapp").createSignedUrl(path, 3600);
     if (!signed) throw new Error("liga temporal");
-    const caption = (IS_TEST ? "🧪 PRUEBAS\n" : "") + "*" + info.title + "*\n" + info.body;
+    const caption = (IS_TEST ? "🧪 PRUEBAS\n" : "") + "*" + info.title + "*" + (info.body ? "\n" + info.body : "");
     const r = await fetch(`${sec.greenapi_url}/waInstance${sec.greenapi_instance}/sendFileByUrl/${sec.greenapi_token}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chatId: sec.whatsapp_group, urlFile: signed.signedUrl, fileName: "walkout.mp4", caption }),

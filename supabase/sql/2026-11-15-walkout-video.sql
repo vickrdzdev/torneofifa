@@ -1,10 +1,12 @@
 -- Video "walkout" de las compras del Mercado abierto en el grupo de WhatsApp.
 --
--- Al registrarse una compra fuera del draft (team_purchases.draft is null) se crea un
+-- Al registrarse una compra con el Mercado abierto o en un Fast Track (todo menos el
+-- Draft inicial, team_purchases.draft = 'initial', que necesita los mensajes al instante) se crea un
 -- walkout_jobs y se le pide a GitHub Actions (workflow walkout.yml del repo del sitio)
 -- que grabe el video. El workflow pide los datos y entrega el MP4 a la función
--- "walkout", que lo manda al grupo. Esas compras ya no llevan aviso push ni foto
--- (la app dejó de crear ese aviso).
+-- "walkout", que lo manda al grupo. El texto es "💸 X compró a Y"; en el Fast Track la
+-- app agrega quién sigue de turno con walkout_note(). Con el Mercado abierto ya no hay
+-- aviso push; en el Fast Track los avisos push siguen, pero sin la foto en WhatsApp.
 -- Si el video no llega en 8 minutos (o GitHub rechazó la petición), se manda el
 -- mensaje de antes al grupo (texto + foto, solo WhatsApp) para no perder la compra.
 --
@@ -23,6 +25,7 @@ create table if not exists public.walkout_jobs (
   status text not null default 'pending',  -- pending | sent | fallback
   dispatch_id bigint,                      -- petición a GitHub (net._http_response)
   fallback_at timestamptz,                 -- última vez que se pidió el plan B
+  note text,                               -- texto extra del video (Fast Track: quién sigue)
   result text,
   created_at timestamptz not null default now(),
   done_at timestamptz
@@ -58,7 +61,7 @@ create or replace function public.walkout_on_purchase() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare jid uuid;
 begin
-  if new.draft is not null then return new; end if;  -- en los drafts sigue el aviso de siempre
+  if new.draft = 'initial' then return new; end if;  -- Draft inicial: sigue la foto al instante
   insert into walkout_jobs (purchase_id, season_id) values (new.id, new.season_id) returning id into jid;
   perform walkout_dispatch(jid);
   return new;
@@ -98,6 +101,16 @@ end $$;
 
 select cron.unschedule('walkout-fallback') where exists (select 1 from cron.job where jobname = 'walkout-fallback');
 select cron.schedule('walkout-fallback', '* * * * *', 'select public.walkout_fallback()');
+
+-- La app agrega al video quién sigue de turno (Fast Track). Una sola vez y mientras no se haya mandado.
+create or replace function public.walkout_note(p_purchase uuid, p_note text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  update walkout_jobs set note = left(p_note, 300) where purchase_id = p_purchase and status = 'pending' and note is null;
+end $$;
+revoke execute on function public.walkout_note(uuid, text) from public, anon;
+grant execute on function public.walkout_note(uuid, text) to authenticated;
 
 -- Solo el servidor las usa (no por la API pública).
 revoke execute on function public.walkout_dispatch(uuid), public.walkout_fallback(), public.walkout_on_purchase() from public, anon, authenticated;
