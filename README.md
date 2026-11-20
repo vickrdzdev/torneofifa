@@ -22,7 +22,8 @@ El usuario admin se crea desde el dashboard de Supabase → Authentication → U
 cartas repetidas del mismo jugador. Desde las columnas `PLAYER LEAGUE`, `PLAYER CLUB`, `PLAYER NATION` y
 `PLAYAER LEAGUE MONOCHROMATIC` cada jugador trae el id de su liga, club y nacionalidad (`league`,
 `club`, `nation`); las ligas de esas imágenes de futbin van firmadas, así que `market.json` guarda en
-`img` la plantilla de cada tipo y la firma de cada id (ver `marketImg()` en index.html). Las compras se guardan en la tabla `team_purchases`
+`img` la plantilla de cada tipo y la firma de cada id y `tools/futbin_imgs.py` (workflow "Imágenes de futbin") las descarga a `img/futbin/`, que es de
+donde las toman la app y el video (desde algunos celulares futbin no las entrega bien). Las compras se guardan en la tabla `team_purchases`
 de Supabase (una fila por jugador comprado, con el valor pagado).
 
 ## Sitios y bases de datos
