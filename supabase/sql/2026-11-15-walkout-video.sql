@@ -1,12 +1,11 @@
--- Video "walkout" de las compras del Mercado abierto en el grupo de WhatsApp.
+-- Video "walkout" de las compras (Mercado abierto, Fast Track y Draft de la Jornada) en el grupo de WhatsApp.
 --
 -- Al registrarse una compra con el Mercado abierto o en un Fast Track (todo menos el
 -- Draft inicial, team_purchases.draft = 'initial', que necesita los mensajes al instante) se crea un
 -- walkout_jobs y se le pide a GitHub Actions (workflow walkout.yml del repo del sitio)
 -- que grabe el video. El workflow pide los datos y entrega el MP4 a la función
--- "walkout", que lo manda al grupo. El texto es "💸 X compró a Y"; en el Fast Track la
--- app agrega quién sigue de turno con walkout_note(). Con el Mercado abierto ya no hay
--- aviso push; en el Fast Track los avisos push siguen, pero sin la foto en WhatsApp.
+-- "walkout", que lo manda al grupo con el texto "💸 X hizo una compra"; en los drafts la
+-- app agrega quién sigue de turno con walkout_note(). Las compras ya no mandan aviso push.
 -- Si el video no llega en 8 minutos (o GitHub rechazó la petición), se manda el
 -- mensaje de antes al grupo (texto + foto, solo WhatsApp) para no perder la compra.
 --
