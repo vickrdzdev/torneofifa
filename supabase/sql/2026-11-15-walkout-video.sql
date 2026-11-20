@@ -118,3 +118,27 @@ revoke execute on function public.walkout_dispatch(uuid), public.walkout_fallbac
 -- Secretos por proyecto (github_token lo agrega el admin a mano, no va en el repo):
 -- pruebas: walkout_api = https://bcvzgwnwjtcmtbhwruhi.supabase.co/functions/v1/walkout, github_repo = vickrdzdev/torneofifa-pruebas
 -- real:    walkout_api = https://zohacxiwuapnziicaarj.supabase.co/functions/v1/walkout,  github_repo = vickrdzdev/torneofifa
+
+-- Candado para apps viejas (abiertas desde antes del cambio): si una compra ya tiene video
+-- (walkout_jobs), se descarta cualquier aviso "buy:<compra>..." que mande la app, para que
+-- en el grupo no llegue también el mensaje con la foto.
+create or replace function public.notifications_skip_walkout() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare pid uuid;
+begin
+  if new.key like 'buy:%' then
+    begin
+      pid := substring(new.key from 5 for 36)::uuid;
+    exception when others then
+      return new;
+    end;
+    if exists (select 1 from walkout_jobs where purchase_id = pid) then
+      return null;
+    end if;
+  end if;
+  return new;
+end $$;
+revoke execute on function public.notifications_skip_walkout() from public, anon, authenticated;
+drop trigger if exists notifications_skip_walkout on public.notifications;
+create trigger notifications_skip_walkout before insert on public.notifications
+  for each row execute function public.notifications_skip_walkout();
