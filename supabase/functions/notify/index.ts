@@ -17,7 +17,7 @@ type Row = {
   id: string; key: string; kind: string; season_id: string | null; jornada_id: string | null;
   target_player: string | null; exclude_player: string | null; exclude_players: string[] | null;
   title: string; body: string; image: string | null; url: string | null; send_at: string;
-  whatsapp?: boolean; wa_photo?: string | null;
+  whatsapp?: boolean; wa_photo?: string | null; wa_text?: string | null;
 };
 
 async function recipients(row: Row): Promise<string[] | "all"> {
@@ -127,7 +127,8 @@ async function photoCard(url: string) {
 async function sendWhatsApp(sec: Record<string, string>, row: Row) {
   const group = sec.whatsapp_group, api = sec.greenapi_url, id = sec.greenapi_instance, token = sec.greenapi_token;
   if (!group || !api || !id || !token) return "";
-  const caption = (IS_TEST ? "🧪 PRUEBAS\n" : "") + "*" + row.title + "*" + (row.body ? "\n" + row.body : "");
+  // wa_text: texto propio para el grupo (p. ej. la penalización por alineación dice a quién).
+  const caption = (IS_TEST ? "🧪 PRUEBAS\n" : "") + (row.wa_text || ("*" + row.title + "*" + (row.body ? "\n" + row.body : "")));
   let photoErr = "";
   try {
     if (row.wa_photo) {
@@ -172,8 +173,11 @@ async function processDue(summary: string[], sec: Record<string, string>) {
       await sb.from("notifications").update({ result: "vencida" }).eq("id", row.id);
       continue;
     }
-    // "wa_only": solo va al grupo de WhatsApp, sin push (plan B del video de compra, función walkout).
-    const subs = row.kind === "wa_only" ? [] : await subsFor(await recipients(row));
+    // "wa_only": solo va al grupo de WhatsApp, sin push.
+    const who = row.kind === "wa_only" ? [] : await recipients(row);
+    const subs = await subsFor(who);
+    // La penalización por alineación solo se publica en el grupo si de verdad le faltó.
+    const waSkip = row.kind === "lineup_deadline" && Array.isArray(who) && !who.length;
     if (row.kind === "rsvp_summary" && row.jornada_id) row.body = await rsvpSummary(row.jornada_id);
     const payload = JSON.stringify({ title: (IS_TEST ? TEST_TAG : "") + row.title, body: row.body, image: row.image, url: row.url || "./", tag: row.key });
     const results = await Promise.all(subs.map(async (s) => {
@@ -191,7 +195,7 @@ async function processDue(summary: string[], sec: Record<string, string>) {
       }
     }));
     const ok = results.filter(Boolean).length;
-    const wa = row.whatsapp ? await sendWhatsApp(sec, row) : "";
+    const wa = row.whatsapp && !waSkip ? await sendWhatsApp(sec, row) : "";
     await sb.from("notifications").update({ result: `enviada a ${ok}/${subs.length}${wa}` }).eq("id", row.id);
     summary.push(`${row.key}: ${ok}/${subs.length}`);
   }
