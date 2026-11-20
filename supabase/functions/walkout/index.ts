@@ -73,7 +73,19 @@ Deno.serve(async (req) => {
   if (req.method === "GET") {
     const info = await purchaseInfo(job.purchase_id);
     if (!info) return json({ error: "compra borrada" }, 404);
-    return json({ card_id: info.card_id, card_name: info.card_name, pos: info.pos, rat: info.rat, wf: info.wf, sm: info.sm, price: info.price, buyer: info.buyer });
+    // Escudos para la transferencia: el equipo de quien compra y, si alguien del torneo lo vendió antes, el de esa persona.
+    const team = async (playerId: string) => {
+      const { data: p } = await sb.from("players").select("name, team_name, logo_path").eq("id", playerId).maybeSingle();
+      if (!p) return { team: null, logo: null };
+      const signed = p.logo_path ? (await sb.storage.from("logos").createSignedUrl(p.logo_path, 3600)).data : null;
+      return { team: p.team_name || p.name, logo: signed ? signed.signedUrl : null };
+    };
+    const to = await team(info.player_id);
+    const { data: prev } = await sb.from("team_purchases").select("player_id").eq("season_id", info.season_id).eq("card_id", info.card_id)
+      .not("sold_at", "is", null).neq("id", info.id).order("sold_at", { ascending: false }).limit(1).maybeSingle();
+    const from = prev ? await team(prev.player_id) : { team: null, logo: null };
+    return json({ card_id: info.card_id, card_name: info.card_name, pos: info.pos, rat: info.rat, wf: info.wf, sm: info.sm, price: info.price, buyer: info.buyer,
+      buyer_team: to.team, buyer_logo: to.logo, from_team: from.team, from_logo: from.logo });
   }
   if (req.method !== "POST") return json({ error: "método" }, 405);
 
@@ -104,7 +116,7 @@ Deno.serve(async (req) => {
     });
     const txt = (await r.text()).slice(0, 120);
     if (!r.ok) throw new Error("Green-API " + r.status + " " + txt);
-    await setResult(job.id, "video enviado " + Math.round(mp4.length / 1024) + " KB · " + txt);
+    await setResult(job.id, "video enviado " + Math.round(mp4.length / 1024) + " KB · imágenes " + (u.searchParams.get("imgs") || "?") + " · " + txt);
     return json({ ok: true });
   } catch (e) {
     // El video no salió: el mensaje de antes para no perder la compra.

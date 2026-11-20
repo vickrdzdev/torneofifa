@@ -19,7 +19,10 @@ El usuario admin se crea desde el dashboard de Supabase → Authentication → U
 
 `market.json` contiene el mercado de jugadores (Futbin FC27), generado a partir del Excel
 `Futbin_FC27.xlsx`: se omiten columnas vacías y la duplicada `NAME AUX`, y se unifican las
-cartas repetidas del mismo jugador. Las compras se guardan en la tabla `team_purchases`
+cartas repetidas del mismo jugador. Desde las columnas `PLAYER LEAGUE`, `PLAYER CLUB`, `PLAYER NATION` y
+`PLAYAER LEAGUE MONOCHROMATIC` cada jugador trae el id de su liga, club y nacionalidad (`league`,
+`club`, `nation`); las ligas de esas imágenes de futbin van firmadas, así que `market.json` guarda en
+`img` la plantilla de cada tipo y la firma de cada id (ver `marketImg()` en index.html). Las compras se guardan en la tabla `team_purchases`
 de Supabase (una fila por jugador comprado, con el valor pagado).
 
 ## Sitios y bases de datos
