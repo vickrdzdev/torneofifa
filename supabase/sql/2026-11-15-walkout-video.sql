@@ -152,3 +152,35 @@ begin
 end $$;
 revoke execute on function public.walkout_diag(uuid, text) from public, anon;
 grant execute on function public.walkout_diag(uuid, text) to authenticated;
+
+-- Pruebas: el video solo se graba si "video" está en app_secrets.test_notify_allow (ese secreto
+-- solo existe en pruebas; en producción no aplica). Ver también la función notify.
+create or replace function public.walkout_dispatch(job_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  j public.walkout_jobs;
+  tok text := (select value from app_secrets where name = 'github_token');
+  repo text := (select value from app_secrets where name = 'github_repo');
+  api text := (select value from app_secrets where name = 'walkout_api');
+  allow text := (select value from app_secrets where name = 'test_notify_allow');
+  rid bigint;
+begin
+  select * into j from walkout_jobs where id = job_id;
+  if j.id is null then return; end if;
+  if allow is not null and not ('video' = any(string_to_array(replace(allow, ' ', ''), ','))) then
+    update walkout_jobs set status = 'off', result = 'video apagado (pruebas)', done_at = now() where id = job_id;
+    return;
+  end if;
+  if tok is null or repo is null or api is null then
+    update walkout_jobs set result = 'sin secretos de GitHub' where id = job_id;
+    return;  -- walkout_fallback() manda el mensaje de antes
+  end if;
+  select net.http_post(
+    'https://api.github.com/repos/' || repo || '/actions/workflows/walkout.yml/dispatches',
+    jsonb_build_object('ref', 'main', 'inputs', jsonb_build_object('job', j.id::text, 'token', j.token, 'api', api)),
+    headers := jsonb_build_object('Authorization', 'Bearer ' || tok, 'Accept', 'application/vnd.github+json',
+      'X-GitHub-Api-Version', '2022-11-28', 'User-Agent', 'torneofifa-walkout', 'Content-Type', 'application/json'),
+    timeout_milliseconds := 20000) into rid;
+  update walkout_jobs set dispatch_id = rid where id = job_id;
+end $$;
+revoke execute on function public.walkout_dispatch(uuid) from public, anon, authenticated;

@@ -173,6 +173,15 @@ async function processDue(summary: string[], sec: Record<string, string>) {
       await sb.from("notifications").update({ result: "vencida" }).eq("id", row.id);
       continue;
     }
+    // Pruebas: solo salen los avisos encendidos. app_secrets.test_notify_allow (solo existe en pruebas)
+    // tiene los inicios de key permitidos separados por coma (p. ej. "sell:,turn:"); vacío = todo apagado.
+    if (sec.test_notify_allow !== undefined) {
+      const allow = String(sec.test_notify_allow).split(",").map((x) => x.trim()).filter(Boolean);
+      if (!allow.some((p) => row.key.startsWith(p))) {
+        await sb.from("notifications").update({ result: "apagada (pruebas)" }).eq("id", row.id);
+        continue;
+      }
+    }
     // "wa_only": solo va al grupo de WhatsApp, sin push.
     const who = row.kind === "wa_only" ? [] : await recipients(row);
     const subs = await subsFor(who);
